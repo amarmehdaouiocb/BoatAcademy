@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@boatacademy/shared';
+import type { Database } from './database.types';
 
 /**
  * Create Supabase client for browser (Client Components)

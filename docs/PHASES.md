@@ -9,7 +9,7 @@
 | 1 | Setup Monorepo | :white_check_mark: Termine | 2025-01-08 |
 | 2 | DB Schema + RLS | :white_check_mark: Termine | 2025-01-08 |
 | 3 | Edge Functions | :white_check_mark: Termine | 2025-01-08 |
-| 4 | admin-web | :hourglass: Planifie | - |
+| 4 | admin-web | :construction: En cours | 2025-01-08 |
 | 5 | student-mobile | :hourglass: Planifie | - |
 | 6 | Paiements Stripe | :hourglass: Planifie | - |
 | 7 | Push notifications | :hourglass: Planifie | - |
@@ -167,18 +167,19 @@ supabase/functions/
 
 ## Phase 4 : admin-web
 
-**Status**: :hourglass: Planifie
+**Status**: :construction: En cours
 
-### Objectifs
+### Taches
 
-- Auth (email/password)
-- Dashboard avec stats
-- CRUD Sites
-- CRUD Etudiants
-- CRUD Sessions
-- Validation documents
-- Messagerie
-- Vue planning moniteur
+- [ ] Auth (login/logout/middleware)
+- [ ] Layout admin (sidebar, header, navigation)
+- [ ] Dashboard avec stats
+- [ ] CRUD Sites
+- [ ] CRUD Etudiants (liste, detail, documents)
+- [ ] CRUD Sessions (liste, creation, inscriptions)
+- [ ] Validation documents
+- [ ] Messagerie (conversations, envoi)
+- [ ] Vue planning moniteur (read-only)
 
 ---
 

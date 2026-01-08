@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -16,11 +18,24 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // TODO: Implement Supabase auth
-      console.log('Login attempt:', { email });
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        if (authError.message.includes('Invalid login')) {
+          setError('Email ou mot de passe incorrect');
+        } else {
+          setError(authError.message);
+        }
+        return;
+      }
+
       router.push('/dashboard');
-    } catch (err) {
-      setError('Email ou mot de passe incorrect');
+      router.refresh();
+    } catch {
+      setError('Une erreur est survenue');
     } finally {
       setLoading(false);
     }

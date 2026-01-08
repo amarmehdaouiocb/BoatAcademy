@@ -13,8 +13,8 @@
   "dependencies": {
     "@boatacademy/api-client": "workspace:*",
     "@boatacademy/shared": "workspace:*",
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.47.10",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.0",
     "@tanstack/react-query": "^5.62.11",
     "lucide-react": "^0.468.0",
     "next": "^15.1.3",
