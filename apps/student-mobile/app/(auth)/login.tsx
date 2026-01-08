@@ -1,25 +1,43 @@
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Veuillez remplir tous les champs');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      // TODO: Implement Supabase auth
-      console.log('Login:', { email });
-      router.replace('/(tabs)');
+      const { error: authError } = await signIn(email.trim().toLowerCase(), password);
+
+      if (authError) {
+        if (authError.message.includes('Invalid login')) {
+          setError('Email ou mot de passe incorrect');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Veuillez confirmer votre email avant de vous connecter');
+        } else {
+          setError(authError.message);
+        }
+      } else {
+        // Auth state change will trigger redirect via index.tsx
+        router.replace('/');
+      }
     } catch (err) {
-      setError('Email ou mot de passe incorrect');
+      setError('Une erreur est survenue. Veuillez reessayer.');
     } finally {
       setLoading(false);
     }
@@ -32,11 +50,19 @@ export default function LoginScreen() {
         className="flex-1"
       >
         <View className="flex-1 justify-center px-6">
+          {/* Logo */}
+          <View className="mb-8 items-center">
+            <View className="h-20 w-20 items-center justify-center rounded-2xl bg-navy-900">
+              <Text className="text-4xl">⚓</Text>
+            </View>
+            <Text className="mt-4 text-2xl font-bold text-navy-900">Boat Academy</Text>
+          </View>
+
           {/* Header */}
           <View className="mb-8">
             <Text className="text-3xl font-bold text-gray-900">Connexion</Text>
             <Text className="mt-2 text-gray-600">
-              Connectez-vous a votre compte Boat Academy
+              Connectez-vous a votre compte stagiaire
             </Text>
           </View>
 
@@ -58,7 +84,10 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                className="rounded-xl border border-gray-300 px-4 py-4 text-lg"
+                autoCorrect={false}
+                editable={!loading}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-4 text-lg text-gray-900"
+                placeholderTextColor="#9ca3af"
               />
             </View>
 
@@ -70,14 +99,18 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 secureTextEntry
                 autoComplete="password"
-                className="rounded-xl border border-gray-300 px-4 py-4 text-lg"
+                editable={!loading}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-4 text-lg text-gray-900"
+                placeholderTextColor="#9ca3af"
               />
             </View>
 
             <Pressable
               onPress={handleLogin}
               disabled={loading}
-              className="mt-6 rounded-xl bg-primary-600 py-4 active:bg-primary-700 disabled:opacity-50"
+              className={`mt-6 rounded-xl py-4 ${
+                loading ? 'bg-navy-400' : 'bg-navy-900 active:bg-navy-800'
+              }`}
             >
               <Text className="text-center text-lg font-semibold text-white">
                 {loading ? 'Connexion...' : 'Se connecter'}
@@ -89,8 +122,8 @@ export default function LoginScreen() {
           <View className="mt-8 flex-row justify-center">
             <Text className="text-gray-600">Pas encore de compte ? </Text>
             <Link href="/register" asChild>
-              <Pressable>
-                <Text className="font-semibold text-primary-600">S'inscrire</Text>
+              <Pressable disabled={loading}>
+                <Text className="font-semibold text-navy-600">S'inscrire</Text>
               </Pressable>
             </Link>
           </View>
