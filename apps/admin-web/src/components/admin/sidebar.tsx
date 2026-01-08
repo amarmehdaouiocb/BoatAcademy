@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   MessageSquare,
   Building2,
   ClipboardList,
-  Anchor,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -79,15 +79,15 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
     <aside className="flex w-64 flex-col bg-navy-900">
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-navy-800 px-6">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white">
-            <Anchor className="h-5 w-5 text-navy-900" />
-          </div>
-          <div>
-            <span className="text-base font-semibold tracking-tight text-white">
-              Boat Academy
-            </span>
-          </div>
+        <Link href="/dashboard" className="flex items-center">
+          <Image
+            src="/images/logo.png"
+            alt="Boat Academy"
+            width={160}
+            height={40}
+            className="h-8 w-auto brightness-0 invert"
+            priority
+          />
         </Link>
       </div>
 

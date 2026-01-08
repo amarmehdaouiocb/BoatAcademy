@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -215,15 +216,13 @@ export default function RegisterScreen() {
           >
             {/* Logo */}
             <Animated.View entering={FadeInDown.duration(800)} style={styles.logoContainer}>
-              <LinearGradient
-                colors={['#0ea5e9', '#0284c7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoGradient}
-              >
-                <Text style={styles.logoEmoji}>⚓</Text>
-              </LinearGradient>
-              <Text style={styles.logoText}>Boat Academy</Text>
+              <View style={styles.logoWrapper}>
+                <Image
+                  source={require('../../assets/images/logo.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
               <Text style={styles.logoSubtext}>Espace Stagiaire</Text>
             </Animated.View>
 
@@ -544,25 +543,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  logoGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
+  logoWrapper: {
+    width: 180,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoEmoji: {
-    fontSize: 36,
-  },
-  logoText: {
-    marginTop: 12,
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: -0.5,
+  logo: {
+    width: '100%',
+    height: '100%',
+    tintColor: '#ffffff',
   },
   logoSubtext: {
-    marginTop: 4,
+    marginTop: 10,
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
   },
