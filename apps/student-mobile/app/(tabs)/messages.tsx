@@ -15,73 +15,69 @@ import { supabase } from '../../src/lib/supabase';
 
 type Message = {
   id: string;
-  thread_id: string;
-  sender_id: string;
+  conversation_id: string;
+  sender_user_id: string;
   body: string;
   created_at: string;
-  is_read: boolean;
   sender: {
     full_name: string | null;
     role: string;
   } | null;
 };
 
-type Thread = {
+type Conversation = {
   id: string;
-  subject: string;
   created_at: string;
-  messages: Message[];
 };
 
 export default function MessagesScreen() {
   const { user, student } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [thread, setThread] = useState<Thread | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
-  const fetchOrCreateThread = useCallback(async () => {
+  const fetchOrCreateConversation = useCallback(async () => {
     if (!user?.id || !student?.site_id) return;
 
     try {
-      // Try to find existing thread for this student
-      const { data: existingThreads, error: threadError } = await supabase
-        .from('message_threads')
-        .select('id, subject, created_at')
+      // Try to find existing conversation for this student
+      const { data: existingConversations, error: convError } = await supabase
+        .from('conversations')
+        .select('id, created_at')
         .eq('site_id', student.site_id)
         .eq('student_user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (threadError) throw threadError;
+      if (convError) throw convError;
 
-      let threadId: string;
+      let conversationId: string;
 
-      if (existingThreads && existingThreads.length > 0) {
-        // Use existing thread
-        threadId = existingThreads[0].id;
-        setThread(existingThreads[0] as Thread);
+      if (existingConversations && existingConversations.length > 0) {
+        // Use existing conversation
+        conversationId = existingConversations[0].id;
+        setConversation(existingConversations[0] as Conversation);
       } else {
-        // Create new thread
-        const { data: newThread, error: createError } = await supabase
-          .from('message_threads')
+        // Create new conversation
+        const { data: newConv, error: createError } = await supabase
+          .from('conversations')
           .insert({
             site_id: student.site_id,
             student_user_id: user.id,
-            subject: 'Conversation avec l\'ecole',
           })
           .select()
           .single();
 
         if (createError) throw createError;
-        threadId = newThread.id;
-        setThread(newThread as Thread);
+        conversationId = newConv.id;
+        setConversation(newConv as Conversation);
       }
 
-      // Fetch messages for this thread
-      await fetchMessages(threadId);
+      // Fetch messages for this conversation
+      await fetchMessages(conversationId);
     } catch (err) {
       console.error('Error:', err);
     } finally {
@@ -89,57 +85,44 @@ export default function MessagesScreen() {
     }
   }, [user?.id, student?.site_id]);
 
-  const fetchMessages = async (threadId: string) => {
+  const fetchMessages = async (conversationId: string) => {
     const { data, error } = await supabase
       .from('messages')
       .select(`
         id,
-        thread_id,
-        sender_id,
+        conversation_id,
+        sender_user_id,
         body,
         created_at,
-        is_read,
-        sender:profiles!messages_sender_id_fkey(full_name, role)
+        sender:profiles!messages_sender_user_id_fkey(full_name, role)
       `)
-      .eq('thread_id', threadId)
+      .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching messages:', error);
     } else {
-      setMessages(data as Message[]);
-
-      // Mark unread messages as read
-      const unreadIds = data
-        ?.filter((m) => !m.is_read && m.sender_id !== user?.id)
-        .map((m) => m.id);
-
-      if (unreadIds && unreadIds.length > 0) {
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .in('id', unreadIds);
-      }
+      setMessages(data as unknown as Message[]);
     }
   };
 
   useEffect(() => {
-    fetchOrCreateThread();
-  }, [fetchOrCreateThread]);
+    fetchOrCreateConversation();
+  }, [fetchOrCreateConversation]);
 
   // Subscribe to new messages
   useEffect(() => {
-    if (!thread?.id) return;
+    if (!conversation?.id) return;
 
     const channel = supabase
-      .channel(`messages:${thread.id}`)
+      .channel(`messages:${conversation.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `thread_id=eq.${thread.id}`,
+          filter: `conversation_id=eq.${conversation.id}`,
         },
         async (payload) => {
           // Fetch the new message with sender info
@@ -147,26 +130,17 @@ export default function MessagesScreen() {
             .from('messages')
             .select(`
               id,
-              thread_id,
-              sender_id,
+              conversation_id,
+              sender_user_id,
               body,
               created_at,
-              is_read,
-              sender:profiles!messages_sender_id_fkey(full_name, role)
+              sender:profiles!messages_sender_user_id_fkey(full_name, role)
             `)
             .eq('id', payload.new.id)
             .single();
 
           if (data) {
-            setMessages((prev) => [...prev, data as Message]);
-
-            // Mark as read if not from current user
-            if (data.sender_id !== user?.id) {
-              await supabase
-                .from('messages')
-                .update({ is_read: true })
-                .eq('id', data.id);
-            }
+            setMessages((prev) => [...prev, data as unknown as Message]);
           }
         }
       )
@@ -175,7 +149,7 @@ export default function MessagesScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [thread?.id, user?.id]);
+  }, [conversation?.id, user?.id]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -187,7 +161,7 @@ export default function MessagesScreen() {
   }, [messages.length]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !thread?.id || !user?.id) return;
+    if (!newMessage.trim() || !conversation?.id || !user?.id || !student?.site_id) return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
@@ -195,10 +169,10 @@ export default function MessagesScreen() {
 
     try {
       const { error } = await supabase.from('messages').insert({
-        thread_id: thread.id,
-        sender_id: user.id,
+        site_id: student.site_id,
+        conversation_id: conversation.id,
+        sender_user_id: user.id,
         body: messageText,
-        is_read: false,
       });
 
       if (error) throw error;
@@ -229,7 +203,7 @@ export default function MessagesScreen() {
           {/* Header */}
           <View className="border-b border-gray-200 bg-white px-6 py-4">
             <Text className="text-xl font-bold text-gray-900">Messages</Text>
-            <Text className="mt-1 text-sm text-gray-600">Echangez avec l'ecole</Text>
+            <Text className="mt-1 text-sm text-gray-600">Échangez avec l'école</Text>
           </View>
 
           {/* Messages list */}
@@ -253,7 +227,7 @@ export default function MessagesScreen() {
                   <MessageBubble
                     key={message.id}
                     message={message}
-                    isOwnMessage={message.sender_id === user?.id}
+                    isOwnMessage={message.sender_user_id === user?.id}
                   />
                 ))}
               </View>
@@ -318,7 +292,7 @@ function MessageBubble({
           <Text className="mb-1 text-xs font-medium text-navy-600">
             {message.sender.full_name}
             {message.sender.role !== 'student' && (
-              <Text className="text-gray-400"> • Ecole</Text>
+              <Text className="text-gray-400"> • École</Text>
             )}
           </Text>
         )}

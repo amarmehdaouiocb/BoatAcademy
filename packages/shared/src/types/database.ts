@@ -117,6 +117,7 @@ export type Database = {
           site_id: string;
           oedipp_number: string | null;
           oedipp_set_at: string | null;
+          access_expires_at: string | null;
           consent_marketing: boolean;
           created_at: string;
         };
@@ -125,6 +126,7 @@ export type Database = {
           site_id: string;
           oedipp_number?: string | null;
           oedipp_set_at?: string | null;
+          access_expires_at?: string | null;
           consent_marketing?: boolean;
           created_at?: string;
         };
@@ -133,10 +135,19 @@ export type Database = {
           site_id?: string;
           oedipp_number?: string | null;
           oedipp_set_at?: string | null;
+          access_expires_at?: string | null;
           consent_marketing?: boolean;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'students_site_id_fkey';
+            columns: ['site_id'];
+            isOneToOne: false;
+            referencedRelation: 'sites';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       document_types: {
         Row: {

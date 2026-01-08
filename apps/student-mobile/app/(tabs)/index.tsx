@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
@@ -24,14 +24,15 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !student?.site_id) return;
 
     try {
-      // Fetch documents count
+      // Fetch documents count from student_documents
       const { data: docs } = await supabase
-        .from('documents')
+        .from('student_documents')
         .select('status')
-        .eq('user_id', user.id);
+        .eq('student_user_id', user.id)
+        .eq('site_id', student.site_id);
 
       const approvedDocs = docs?.filter((d) => d.status === 'approved').length || 0;
 
@@ -42,33 +43,33 @@ export default function HomeScreen() {
           id,
           session:sessions!inner(starts_at)
         `)
-        .eq('user_id', user.id)
-        .eq('status', 'confirmed')
+        .eq('student_user_id', user.id)
+        .eq('status', 'assigned')
         .gte('session.starts_at', new Date().toISOString());
 
-      // Fetch unread messages
-      const { count: unreadCount } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .neq('sender_id', user.id)
-        .eq('is_read', false)
-        .in(
-          'thread_id',
-          student?.site_id
-            ? (
-                await supabase
-                  .from('message_threads')
-                  .select('id')
-                  .eq('student_user_id', user.id)
-              ).data?.map((t) => t.id) || []
-            : []
-        );
+      // Fetch unread messages count (messages from others in user's conversation)
+      let unreadCount = 0;
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('student_user_id', user.id)
+        .eq('site_id', student.site_id);
+
+      if (conversations && conversations.length > 0) {
+        const conversationIds = conversations.map((c) => c.id);
+        const { count } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .neq('sender_user_id', user.id)
+          .in('conversation_id', conversationIds);
+        unreadCount = count || 0;
+      }
 
       setStats({
         documentsApproved: approvedDocs,
         documentsTotal: 4,
         upcomingEnrollments: enrollments?.length || 0,
-        unreadMessages: unreadCount || 0,
+        unreadMessages: unreadCount,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -90,7 +91,7 @@ export default function HomeScreen() {
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon apres-midi';
+    if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
   };
 
@@ -108,25 +109,25 @@ export default function HomeScreen() {
   const getNextStep = () => {
     if (stats.documentsApproved < stats.documentsTotal) {
       return {
-        title: 'Completez votre dossier',
-        description: `Il vous reste ${stats.documentsTotal - stats.documentsApproved} document(s) a valider pour finaliser votre inscription.`,
+        title: 'Complétez votre dossier',
+        description: `Il vous reste ${stats.documentsTotal - stats.documentsApproved} document(s) à valider pour finaliser votre inscription.`,
         icon: '📄',
-        href: '/documents',
+        href: '/documents' as Href,
       };
     }
     if (stats.upcomingEnrollments === 0) {
       return {
-        title: 'Inscrivez-vous a une session',
+        title: 'Inscrivez-vous à une session',
         description: 'Votre dossier est complet ! Vous pouvez maintenant vous inscrire aux sessions de formation.',
         icon: '📅',
-        href: '/sessions',
+        href: '/sessions' as Href,
       };
     }
     return {
-      title: 'Vous etes pret !',
-      description: `Vous avez ${stats.upcomingEnrollments} session(s) a venir. Consultez votre planning.`,
+      title: 'Vous êtes prêt !',
+      description: `Vous avez ${stats.upcomingEnrollments} session(s) à venir. Consultez votre planning.`,
       icon: '✅',
-      href: '/sessions',
+      href: '/sessions' as Href,
     };
   };
 
@@ -158,7 +159,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Next Step Card */}
-        <Link href={nextStep.href as any} asChild>
+        <Link href={nextStep.href} asChild>
           <Pressable className="mb-6 rounded-xl bg-navy-900 p-4 active:bg-navy-800">
             <View className="flex-row items-start">
               <Text className="mr-4 text-3xl">{nextStep.icon}</Text>
@@ -177,7 +178,7 @@ export default function HomeScreen() {
             <ActionCard
               icon="📄"
               title="Mes documents"
-              description="Gerez vos documents administratifs"
+              description="Gérez vos documents administratifs"
               href="/documents"
               badge={
                 stats.documentsApproved < stats.documentsTotal
@@ -194,7 +195,7 @@ export default function HomeScreen() {
             <ActionCard
               icon="💬"
               title="Messages"
-              description="Echangez avec l'ecole"
+              description="Échangez avec l'école"
               href="/messages"
               badge={stats.unreadMessages > 0 ? `${stats.unreadMessages} nouveau(x)` : undefined}
             />
@@ -239,7 +240,7 @@ function ActionCard({
   badge?: string;
 }) {
   return (
-    <Link href={href as any} asChild>
+    <Link href={href as Href} asChild>
       <Pressable className="flex-row items-center rounded-xl bg-white p-4 active:bg-gray-50">
         <Text className="mr-4 text-3xl">{icon}</Text>
         <View className="flex-1">

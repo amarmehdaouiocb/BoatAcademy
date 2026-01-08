@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (studentError) {
           console.error('Error fetching student:', studentError);
         } else {
-          setStudent(studentData as Student);
+          setStudent(studentData as unknown as Student);
         }
       }
     } catch (error) {

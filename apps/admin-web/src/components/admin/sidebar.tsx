@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
     roles: ['admin'],
   },
   {
-    label: 'Etudiants',
+    label: 'Étudiants',
     href: '/dashboard/students',
     icon: Users,
     roles: ['admin', 'manager'],
@@ -127,7 +127,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
       <div className="border-t border-navy-800 p-4">
         <div className="rounded-lg bg-navy-800/50 px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-navy-400">
-            Votre role
+            Votre rôle
           </p>
           <p className="mt-1 text-sm font-semibold capitalize text-white">{userRole}</p>
         </div>

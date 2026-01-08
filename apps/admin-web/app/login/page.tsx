@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="rounded-2xl bg-white p-8 shadow-lg">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">Boat Academy</h1>
-            <p className="mt-2 text-gray-600">Connectez-vous a votre compte</p>
+            <p className="mt-2 text-gray-600">Connectez-vous à votre compte</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">

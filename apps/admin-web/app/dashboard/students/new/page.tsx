@@ -154,8 +154,8 @@ export default function NewStudentPage() {
 
             <div className="rounded-lg bg-navy-50 p-4">
               <p className="text-sm text-navy-600">
-                Un email d&apos;invitation sera envoye au stagiaire pour qu&apos;il puisse
-                creer son mot de passe et acceder a son espace personnel.
+                Un email d&apos;invitation sera envoyé au stagiaire pour qu&apos;il puisse
+                créer son mot de passe et accéder a son espace personnel.
               </p>
             </div>
 

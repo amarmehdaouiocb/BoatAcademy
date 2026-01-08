@@ -37,7 +37,7 @@ export default function LoginScreen() {
         router.replace('/');
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez reessayer.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function LoginScreen() {
           <View className="mb-8">
             <Text className="text-3xl font-bold text-gray-900">Connexion</Text>
             <Text className="mt-2 text-gray-600">
-              Connectez-vous a votre compte stagiaire
+              Connectez-vous à votre compte stagiaire
             </Text>
           </View>
 

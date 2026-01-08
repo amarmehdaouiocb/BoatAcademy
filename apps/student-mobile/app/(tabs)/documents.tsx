@@ -6,45 +6,60 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
 
-type DocumentType = 'id_card' | 'photo' | 'medical_certificate' | 'proof_of_address';
+type DocumentTypeKey = 'id_card' | 'photo' | 'medical_certificate' | 'proof_of_address';
 
-type Document = {
+type StudentDocument = {
   id: string;
-  type: DocumentType;
-  status: 'pending' | 'approved' | 'rejected';
-  rejection_reason: string | null;
-  created_at: string;
-  file_url: string | null;
+  document_type_id: string;
+  status: 'missing' | 'pending' | 'approved' | 'rejected';
+  rejected_reason: string | null;
+  uploaded_at: string;
+  storage_path: string | null;
 };
 
-const DOCUMENT_CONFIG: Record<DocumentType, { name: string; icon: string; required: boolean }> = {
-  id_card: { name: "Piece d'identite", icon: '🪪', required: true },
-  photo: { name: "Photo d'identite", icon: '📷', required: true },
-  medical_certificate: { name: 'Certificat medical', icon: '🏥', required: true },
+const DOCUMENT_CONFIG: Record<DocumentTypeKey, { name: string; icon: string; required: boolean }> = {
+  id_card: { name: "Pièce d'identité", icon: '🪪', required: true },
+  photo: { name: "Photo d'identité", icon: '📷', required: true },
+  medical_certificate: { name: 'Certificat médical', icon: '🏥', required: true },
   proof_of_address: { name: 'Justificatif de domicile', icon: '🏠', required: true },
 };
 
 export default function DocumentsScreen() {
   const { user, student } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<{ id: string; key: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading] = useState<DocumentType | null>(null);
+  const [uploading, setUploading] = useState<DocumentTypeKey | null>(null);
+
+  const fetchDocumentTypes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('document_types')
+      .select('id, key');
+
+    if (!error && data) {
+      setDocumentTypes(data);
+    }
+    return data || [];
+  }, []);
 
   const fetchDocuments = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !student?.site_id) return;
 
     try {
+      const types = await fetchDocumentTypes();
+
       const { data, error } = await supabase
-        .from('documents')
+        .from('student_documents')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('student_user_id', user.id)
+        .eq('site_id', student.site_id)
+        .order('uploaded_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching documents:', error);
       } else {
-        setDocuments(data as Document[]);
+        setDocuments(data as StudentDocument[]);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -52,7 +67,7 @@ export default function DocumentsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user?.id, student?.site_id, fetchDocumentTypes]);
 
   useEffect(() => {
     fetchDocuments();
@@ -63,32 +78,38 @@ export default function DocumentsScreen() {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  const getDocumentByType = (type: DocumentType): Document | undefined => {
-    return documents.find((doc) => doc.type === type);
+  const getDocumentTypeId = (typeKey: DocumentTypeKey): string | undefined => {
+    return documentTypes.find((dt) => dt.key === typeKey)?.id;
   };
 
-  const getDocumentStatus = (type: DocumentType): 'missing' | 'pending' | 'approved' | 'rejected' => {
-    const doc = getDocumentByType(type);
+  const getDocumentByType = (typeKey: DocumentTypeKey): StudentDocument | undefined => {
+    const typeId = getDocumentTypeId(typeKey);
+    if (!typeId) return undefined;
+    return documents.find((doc) => doc.document_type_id === typeId);
+  };
+
+  const getDocumentStatus = (typeKey: DocumentTypeKey): 'missing' | 'pending' | 'approved' | 'rejected' => {
+    const doc = getDocumentByType(typeKey);
     if (!doc) return 'missing';
     return doc.status;
   };
 
-  const handleUpload = async (type: DocumentType) => {
+  const handleUpload = async (typeKey: DocumentTypeKey) => {
     Alert.alert(
       'Ajouter un document',
       'Comment souhaitez-vous ajouter ce document ?',
       [
         {
           text: 'Prendre une photo',
-          onPress: () => pickFromCamera(type),
+          onPress: () => pickFromCamera(typeKey),
         },
         {
           text: 'Choisir une image',
-          onPress: () => pickFromGallery(type),
+          onPress: () => pickFromGallery(typeKey),
         },
         {
           text: 'Choisir un fichier',
-          onPress: () => pickFile(type),
+          onPress: () => pickFile(typeKey),
         },
         {
           text: 'Annuler',
@@ -98,10 +119,10 @@ export default function DocumentsScreen() {
     );
   };
 
-  const pickFromCamera = async (type: DocumentType) => {
+  const pickFromCamera = async (typeKey: DocumentTypeKey) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission refusee', 'Nous avons besoin de votre permission pour acceder a la camera.');
+      Alert.alert('Permission refusée', 'Nous avons besoin de votre permission pour accéder à la caméra.');
       return;
     }
 
@@ -112,14 +133,14 @@ export default function DocumentsScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadDocument(type, result.assets[0].uri);
+      await uploadDocument(typeKey, result.assets[0].uri);
     }
   };
 
-  const pickFromGallery = async (type: DocumentType) => {
+  const pickFromGallery = async (typeKey: DocumentTypeKey) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission refusee', 'Nous avons besoin de votre permission pour acceder a la galerie.');
+      Alert.alert('Permission refusée', 'Nous avons besoin de votre permission pour accéder à la galerie.');
       return;
     }
 
@@ -130,33 +151,39 @@ export default function DocumentsScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadDocument(type, result.assets[0].uri);
+      await uploadDocument(typeKey, result.assets[0].uri);
     }
   };
 
-  const pickFile = async (type: DocumentType) => {
+  const pickFile = async (typeKey: DocumentTypeKey) => {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['image/*', 'application/pdf'],
       copyToCacheDirectory: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadDocument(type, result.assets[0].uri);
+      await uploadDocument(typeKey, result.assets[0].uri);
     }
   };
 
-  const uploadDocument = async (type: DocumentType, uri: string) => {
+  const uploadDocument = async (typeKey: DocumentTypeKey, uri: string) => {
     if (!user?.id || !student?.site_id) {
-      Alert.alert('Erreur', 'Vous devez etre connecte pour telecharger un document.');
+      Alert.alert('Erreur', 'Vous devez être connecté pour télécharger un document.');
       return;
     }
 
-    setUploading(type);
+    const documentTypeId = getDocumentTypeId(typeKey);
+    if (!documentTypeId) {
+      Alert.alert('Erreur', 'Type de document non trouvé.');
+      return;
+    }
+
+    setUploading(typeKey);
 
     try {
       // Get file extension
       const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}/${type}_${Date.now()}.${ext}`;
+      const fileName = `${student.site_id}/${user.id}/${typeKey}_${Date.now()}.${ext}`;
 
       // Read file and upload
       const response = await fetch(uri);
@@ -164,7 +191,7 @@ export default function DocumentsScreen() {
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
+        .from('student-documents')
         .upload(fileName, blob, {
           contentType: blob.type || 'image/jpeg',
           upsert: false,
@@ -174,31 +201,28 @@ export default function DocumentsScreen() {
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
-
       // Check if document already exists
-      const existingDoc = getDocumentByType(type);
+      const existingDoc = getDocumentByType(typeKey);
 
       if (existingDoc) {
         // Update existing document
         const { error: updateError } = await supabase
-          .from('documents')
+          .from('student_documents')
           .update({
-            file_url: urlData.publicUrl,
+            storage_path: fileName,
             status: 'pending',
-            rejection_reason: null,
+            rejected_reason: null,
           })
           .eq('id', existingDoc.id);
 
         if (updateError) throw updateError;
       } else {
         // Create new document
-        const { error: insertError } = await supabase.from('documents').insert({
-          user_id: user.id,
+        const { error: insertError } = await supabase.from('student_documents').insert({
+          student_user_id: user.id,
           site_id: student.site_id,
-          type,
-          file_url: urlData.publicUrl,
+          document_type_id: documentTypeId,
+          storage_path: fileName,
           status: 'pending',
         });
 
@@ -207,10 +231,10 @@ export default function DocumentsScreen() {
 
       // Refresh documents list
       await fetchDocuments();
-      Alert.alert('Succes', 'Document telecharge avec succes. Il sera valide par un gestionnaire.');
+      Alert.alert('Succès', 'Document téléchargé avec succès. Il sera validé par un gestionnaire.');
     } catch (error: any) {
       console.error('Upload error:', error);
-      Alert.alert('Erreur', error.message || 'Impossible de telecharger le document.');
+      Alert.alert('Erreur', error.message || 'Impossible de télécharger le document.');
     } finally {
       setUploading(null);
     }
@@ -218,10 +242,10 @@ export default function DocumentsScreen() {
 
   // Calculate progress
   const requiredDocs = Object.keys(DOCUMENT_CONFIG).filter(
-    (type) => DOCUMENT_CONFIG[type as DocumentType].required
+    (typeKey) => DOCUMENT_CONFIG[typeKey as DocumentTypeKey].required
   );
   const approvedCount = requiredDocs.filter(
-    (type) => getDocumentStatus(type as DocumentType) === 'approved'
+    (typeKey) => getDocumentStatus(typeKey as DocumentTypeKey) === 'approved'
   ).length;
   const progressPercent = Math.round((approvedCount / requiredDocs.length) * 100);
 
@@ -244,7 +268,7 @@ export default function DocumentsScreen() {
         <View className="mb-6">
           <Text className="text-2xl font-bold text-gray-900">Mes documents</Text>
           <Text className="mt-1 text-gray-600">
-            Telechargez les documents obligatoires pour votre dossier
+            Téléchargez les documents obligatoires pour votre dossier
           </Text>
         </View>
 
@@ -253,7 +277,7 @@ export default function DocumentsScreen() {
           <View className="flex-row items-center justify-between">
             <Text className="font-semibold text-gray-900">Progression</Text>
             <Text className="text-navy-600 font-medium">
-              {approvedCount}/{requiredDocs.length} valides
+              {approvedCount}/{requiredDocs.length} validés
             </Text>
           </View>
           <View className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
@@ -266,15 +290,15 @@ export default function DocumentsScreen() {
 
         {/* Documents list */}
         <View className="space-y-3">
-          {(Object.keys(DOCUMENT_CONFIG) as DocumentType[]).map((type) => (
+          {(Object.keys(DOCUMENT_CONFIG) as DocumentTypeKey[]).map((typeKey) => (
             <DocumentCard
-              key={type}
-              type={type}
-              config={DOCUMENT_CONFIG[type]}
-              document={getDocumentByType(type)}
-              status={getDocumentStatus(type)}
-              uploading={uploading === type}
-              onUpload={() => handleUpload(type)}
+              key={typeKey}
+              typeKey={typeKey}
+              config={DOCUMENT_CONFIG[typeKey]}
+              document={getDocumentByType(typeKey)}
+              status={getDocumentStatus(typeKey)}
+              uploading={uploading === typeKey}
+              onUpload={() => handleUpload(typeKey)}
             />
           ))}
         </View>
@@ -284,16 +308,16 @@ export default function DocumentsScreen() {
 }
 
 function DocumentCard({
-  type,
+  typeKey,
   config,
   document,
   status,
   uploading,
   onUpload,
 }: {
-  type: DocumentType;
+  typeKey: DocumentTypeKey;
   config: { name: string; icon: string; required: boolean };
-  document?: Document;
+  document?: StudentDocument;
   status: 'missing' | 'pending' | 'approved' | 'rejected';
   uploading: boolean;
   onUpload: () => void;
@@ -301,8 +325,8 @@ function DocumentCard({
   const statusConfig = {
     missing: { label: 'Manquant', bgColor: 'bg-gray-100', textColor: 'text-gray-600' },
     pending: { label: 'En attente', bgColor: 'bg-yellow-100', textColor: 'text-yellow-700' },
-    approved: { label: 'Valide', bgColor: 'bg-green-100', textColor: 'text-green-700' },
-    rejected: { label: 'Refuse', bgColor: 'bg-red-100', textColor: 'text-red-700' },
+    approved: { label: 'Validé', bgColor: 'bg-green-100', textColor: 'text-green-700' },
+    rejected: { label: 'Refusé', bgColor: 'bg-red-100', textColor: 'text-red-700' },
   };
 
   const statusInfo = statusConfig[status];
@@ -321,9 +345,9 @@ function DocumentCard({
               <Text className="ml-2 text-xs text-red-500">Obligatoire</Text>
             )}
           </View>
-          {status === 'rejected' && document?.rejection_reason && (
+          {status === 'rejected' && document?.rejected_reason && (
             <View className="mt-2 rounded-lg bg-red-50 p-2">
-              <Text className="text-xs text-red-600">{document.rejection_reason}</Text>
+              <Text className="text-xs text-red-600">{document.rejected_reason}</Text>
             </View>
           )}
         </View>

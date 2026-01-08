@@ -98,7 +98,7 @@ export default function SiteDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Etes-vous sur de vouloir supprimer ce site ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) return;
 
     setDeleting(true);
     setError(null);
@@ -154,7 +154,7 @@ export default function SiteDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-navy-900">{site.name}</h1>
             <p className="mt-1 text-navy-500">
-              Cree le {new Date(site.created_at).toLocaleDateString('fr-FR')}
+              Créé le {new Date(site.created_at).toLocaleDateString('fr-FR')}
             </p>
           </div>
         </div>

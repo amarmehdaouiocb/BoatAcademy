@@ -70,7 +70,7 @@ export default function NewSitePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Nouveau site</h1>
-          <p className="mt-1 text-navy-500">Creer un nouveau site de formation</p>
+          <p className="mt-1 text-navy-500">Créer un nouveau site de formation</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function NewSitePage() {
                 </Button>
               </Link>
               <Button type="submit" loading={loading}>
-                Creer le site
+                Créer le site
               </Button>
             </div>
           </form>

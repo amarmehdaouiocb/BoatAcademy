@@ -76,7 +76,7 @@ export default function SitesPage() {
                   Statut
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-navy-600">
-                  Cree le
+                  Créé le
                 </th>
               </tr>
             </thead>

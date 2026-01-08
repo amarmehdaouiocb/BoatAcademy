@@ -3,7 +3,10 @@
     "name": "Boat Academy",
     "slug": "boat-academy-student",
     "version": "0.1.0",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "boatacademy",
@@ -18,7 +21,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.boatacademy.student",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -27,7 +32,9 @@
         "backgroundColor": "#2563eb"
       },
       "package": "com.boatacademy.student",
-      "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED"]
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -38,7 +45,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#2563eb"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

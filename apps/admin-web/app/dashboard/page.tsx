@@ -144,7 +144,7 @@ export default async function DashboardPage() {
   if (!data) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-navy-500">Erreur de chargement des donnees</p>
+        <p className="text-navy-500">Erreur de chargement des données</p>
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default async function DashboardPage() {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-navy-900">Tableau de bord</h1>
-        <p className="mt-1 text-navy-500">Vue d&apos;ensemble de votre activite</p>
+        <p className="mt-1 text-navy-500">Vue d&apos;ensemble de votre activité</p>
       </div>
 
       {/* Stats grid */}
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
           iconColor="navy"
         />
         <StatCard
-          title="Sessions a venir"
+          title="Sessions à venir"
           value={stats.sessions}
           icon={Calendar}
           iconColor="success"
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
               </Link>
               <Link href="/dashboard/sessions/new">
                 <Button variant="secondary" icon={Plus}>
-                  Creer une session
+                  Créer une session
                 </Button>
               </Link>
               <Link href="/dashboard/documents">
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
           <div className="divide-y divide-navy-100">
             {upcomingSessions.length === 0 ? (
               <div className="px-6 py-8 text-center text-navy-500">
-                Aucune session planifiee
+                Aucune session planifiée
               </div>
             ) : (
               upcomingSessions.map((session) => {
@@ -296,7 +296,7 @@ export default async function DashboardPage() {
                   >
                     <div>
                       <p className="font-medium text-navy-900">
-                        {session.type === 'theory' ? 'Theorie' : 'Pratique'}
+                        {session.type === 'theory' ? 'Théorie' : 'Pratique'}
                       </p>
                       <p className="text-sm text-navy-500">
                         {startsAt.toLocaleDateString('fr-FR', {
@@ -304,7 +304,7 @@ export default async function DashboardPage() {
                           day: 'numeric',
                           month: 'long',
                         })}{' '}
-                        a{' '}
+                        à{' '}
                         {startsAt.toLocaleTimeString('fr-FR', {
                           hour: '2-digit',
                           minute: '2-digit',

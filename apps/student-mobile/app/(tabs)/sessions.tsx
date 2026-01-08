@@ -23,7 +23,7 @@ type Session = {
 type Enrollment = {
   id: string;
   session_id: string;
-  status: 'confirmed' | 'cancelled' | 'attended' | 'absent';
+  status: 'assigned' | 'cancelled' | 'noshow' | 'completed';
   session: Session;
 };
 
@@ -63,7 +63,7 @@ export default function SessionsScreen() {
       if (sessionsError) {
         console.error('Error fetching sessions:', sessionsError);
       } else {
-        setAvailableSessions(sessionsData as Session[]);
+        setAvailableSessions(sessionsData as unknown as Session[]);
       }
 
       // Fetch student's enrollments
@@ -85,14 +85,14 @@ export default function SessionsScreen() {
             enrollments(id)
           )
         `)
-        .eq('user_id', user.id)
+        .eq('student_user_id', user.id)
         .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (enrollmentsError) {
         console.error('Error fetching enrollments:', enrollmentsError);
       } else {
-        setEnrollments(enrollmentsData as Enrollment[]);
+        setEnrollments(enrollmentsData as unknown as Enrollment[]);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -116,19 +116,19 @@ export default function SessionsScreen() {
   };
 
   const handleEnroll = async (session: Session) => {
-    if (!user?.id) return;
+    if (!user?.id || !student?.site_id) return;
 
     const enrolled = session.enrollments?.length || 0;
     const remaining = session.capacity - enrolled;
 
     if (remaining <= 0) {
-      Alert.alert('Session complete', 'Cette session est deja complete.');
+      Alert.alert('Session complète', 'Cette session est déjà complète.');
       return;
     }
 
     Alert.alert(
-      "S'inscrire a la session",
-      `Voulez-vous vous inscrire a la session de ${session.type === 'theory' ? 'theorie' : 'pratique'} du ${formatDate(session.starts_at)} ?`,
+      "S'inscrire à la session",
+      `Voulez-vous vous inscrire à la session de ${session.type === 'theory' ? 'théorie' : 'pratique'} du ${formatDate(session.starts_at)} ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -137,19 +137,20 @@ export default function SessionsScreen() {
             setEnrollingId(session.id);
             try {
               const { error } = await supabase.from('enrollments').insert({
+                site_id: student.site_id,
                 session_id: session.id,
-                user_id: user.id,
-                status: 'confirmed',
+                student_user_id: user.id,
+                status: 'assigned',
               });
 
               if (error) {
                 if (error.message.includes('unique')) {
-                  Alert.alert('Erreur', 'Vous etes deja inscrit a cette session.');
+                  Alert.alert('Erreur', 'Vous êtes déjà inscrit à cette session.');
                 } else {
                   throw error;
                 }
               } else {
-                Alert.alert('Succes', 'Vous etes inscrit a la session.');
+                Alert.alert('Succès', 'Vous êtes inscrit à la session.');
                 await fetchSessions();
               }
             } catch (error: any) {
@@ -166,7 +167,7 @@ export default function SessionsScreen() {
   const handleCancel = async (enrollment: Enrollment) => {
     Alert.alert(
       'Annuler inscription',
-      'Voulez-vous vraiment annuler votre inscription a cette session ?',
+      'Voulez-vous vraiment annuler votre inscription à cette session ?',
       [
         { text: 'Non', style: 'cancel' },
         {
@@ -176,12 +177,12 @@ export default function SessionsScreen() {
             try {
               const { error } = await supabase
                 .from('enrollments')
-                .update({ status: 'cancelled' })
+                .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
                 .eq('id', enrollment.id);
 
               if (error) throw error;
 
-              Alert.alert('Succes', 'Votre inscription a ete annulee.');
+              Alert.alert('Succès', 'Votre inscription a été annulée.');
               await fetchSessions();
             } catch (error: any) {
               Alert.alert('Erreur', error.message || "Impossible d'annuler l'inscription.");
@@ -222,7 +223,7 @@ export default function SessionsScreen() {
                 activeTab === 'available' ? 'text-white' : 'text-gray-600'
               }`}
             >
-              A venir ({availableSessions.length})
+              À venir ({availableSessions.length})
             </Text>
           </Pressable>
           <Pressable
@@ -249,7 +250,7 @@ export default function SessionsScreen() {
               <EmptyState
                 icon="📅"
                 title="Aucune session"
-                description="Les prochaines sessions de formation apparaitront ici"
+                description="Les prochaines sessions de formation apparaîtront ici"
               />
             ) : (
               <View className="space-y-3 pb-6">
@@ -268,7 +269,7 @@ export default function SessionsScreen() {
             <EmptyState
               icon="📝"
               title="Aucune inscription"
-              description="Inscrivez-vous a une session pour la voir apparaitre ici"
+              description="Inscrivez-vous à une session pour la voir apparaître ici"
             />
           ) : (
             <View className="space-y-3 pb-6">
@@ -317,7 +318,7 @@ function SessionCard({
                   session.type === 'theory' ? 'text-blue-700' : 'text-green-700'
                 }`}
               >
-                {session.type === 'theory' ? 'Theorie' : 'Pratique'}
+                {session.type === 'theory' ? 'Théorie' : 'Pratique'}
               </Text>
             </View>
             {isFull && (
@@ -380,10 +381,10 @@ function EnrollmentCard({
   const isPast = new Date(session.starts_at) < new Date();
 
   const statusConfig = {
-    confirmed: { label: 'Confirme', color: 'bg-green-100 text-green-700' },
-    attended: { label: 'Present', color: 'bg-blue-100 text-blue-700' },
-    absent: { label: 'Absent', color: 'bg-red-100 text-red-700' },
-    cancelled: { label: 'Annule', color: 'bg-gray-100 text-gray-600' },
+    assigned: { label: 'Confirmé', color: 'bg-green-100 text-green-700' },
+    completed: { label: 'Terminé', color: 'bg-blue-100 text-blue-700' },
+    noshow: { label: 'Absent', color: 'bg-red-100 text-red-700' },
+    cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-600' },
   };
 
   const statusInfo = statusConfig[enrollment.status];
@@ -403,7 +404,7 @@ function EnrollmentCard({
                   session.type === 'theory' ? 'text-blue-700' : 'text-green-700'
                 }`}
               >
-                {session.type === 'theory' ? 'Theorie' : 'Pratique'}
+                {session.type === 'theory' ? 'Théorie' : 'Pratique'}
               </Text>
             </View>
             <View className={`ml-2 rounded-full px-3 py-1 ${statusInfo.color}`}>
@@ -426,7 +427,7 @@ function EnrollmentCard({
           </View>
         </View>
 
-        {!isPast && enrollment.status === 'confirmed' && (
+        {!isPast && enrollment.status === 'assigned' && (
           <Pressable onPress={onCancel} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
             <Text className="text-sm font-medium text-red-600">Annuler</Text>
           </Pressable>

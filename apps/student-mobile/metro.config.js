@@ -7,16 +7,18 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch all files in the monorepo
-config.watchFolders = [monorepoRoot];
+// Merge watchFolders with Expo's defaults instead of replacing
+config.watchFolders = [...(config.watchFolders || []), monorepoRoot];
 
-// Let Metro know where to resolve packages
+// Add monorepo node_modules to resolution paths (merge, don't replace)
 config.resolver.nodeModulesPaths = [
+  ...(config.resolver.nodeModulesPaths || []),
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// Force Metro to resolve workspace packages from their source
-config.resolver.disableHierarchicalLookup = true;
+// Keep Expo's default for hierarchical lookup (false)
+// This is important for Expo Go compatibility
+config.resolver.disableHierarchicalLookup = false;
 
 module.exports = withNativeWind(config, { input: './src/styles/global.css' });

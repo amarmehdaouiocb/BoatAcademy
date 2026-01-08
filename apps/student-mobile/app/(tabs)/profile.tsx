@@ -11,22 +11,22 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Deconnexion',
-      'Voulez-vous vraiment vous deconnecter ?',
+      'Déconnexion',
+      'Voulez-vous vraiment vous déconnecter ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Se deconnecter',
+          text: 'Se déconnecter',
           style: 'destructive',
           onPress: async () => {
             setLoggingOut(true);
             try {
               await signOut();
-              router.replace('/');
+              // The tabs layout will automatically redirect to /login
+              // when session becomes null
             } catch (error) {
               console.error('Logout error:', error);
-              Alert.alert('Erreur', 'Impossible de se deconnecter.');
-            } finally {
+              Alert.alert('Erreur', 'Impossible de se déconnecter.');
               setLoggingOut(false);
             }
           },
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
         <View className="mb-6 items-center">
           <View className="h-24 w-24 items-center justify-center rounded-full bg-navy-100">
             <Text className="text-3xl font-bold text-navy-600">
-              {getInitials(profile?.full_name)}
+              {getInitials(profile?.full_name ?? null)}
             </Text>
           </View>
           <Text className="mt-4 text-xl font-bold text-gray-900">
@@ -88,14 +88,14 @@ export default function ProfileScreen() {
           <View className="space-y-4">
             <InfoRow
               label="Site de formation"
-              value={student?.site?.name || 'Non attribue'}
+              value={student?.site?.name || 'Non attribué'}
             />
             <InfoRow
-              label="Numero OEDIPP"
-              value={student?.oedipp_number || 'Non renseigne'}
+              label="Numéro OEDIPP"
+              value={student?.oedipp_number || 'Non renseigné'}
             />
             <InfoRow
-              label="Acces expire le"
+              label="Accès expire le"
               value={formatDate(student?.access_expires_at || null)}
               highlight={
                 student?.access_expires_at
@@ -112,9 +112,9 @@ export default function ProfileScreen() {
 
           <View className="space-y-4">
             <InfoRow label="Email" value={user?.email || '-'} />
-            <InfoRow label="Role" value="Stagiaire" />
+            <InfoRow label="Rôle" value="Stagiaire" />
             <InfoRow
-              label="Compte cree le"
+              label="Compte créé le"
               value={formatDate(user?.created_at || null)}
             />
           </View>
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
           />
           <MenuButton
             icon="🔒"
-            label="Politique de confidentialite"
+            label="Politique de confidentialité"
             onPress={() => {
               // TODO: Navigate to privacy
             }}
@@ -154,7 +154,7 @@ export default function ProfileScreen() {
           {loggingOut ? (
             <ActivityIndicator size="small" color="#dc2626" />
           ) : (
-            <Text className="text-center font-semibold text-red-600">Se deconnecter</Text>
+            <Text className="text-center font-semibold text-red-600">Se déconnecter</Text>
           )}
         </Pressable>
 
