@@ -8,26 +8,29 @@ import type { SuccessResponse } from '../types';
 export function createSessionsClient(supabase: SupabaseClient<Database>) {
   return {
     /**
-     * Assign a student to a session
+     * Enroll in a session
      *
-     * Only admin/manager can call this.
-     * Validates OEDIPP for practice sessions.
-     * Checks session capacity.
+     * Students can self-enroll. Admin/manager can assign any student.
+     * Validates entitlement and checks session capacity.
      *
      * @param sessionId - The session UUID
-     * @param studentUserId - The student's user UUID
-     * @throws Error if forbidden, session full, or OEDIPP required
+     * @param studentUserId - Optional: student's user UUID (for admin/manager assigning)
+     * @throws Error if session full, no entitlement, or already enrolled
      *
      * @example
      * ```typescript
-     * await api.sessions.assignStudent(sessionId, studentUserId);
+     * // Student self-enrollment
+     * await api.sessions.enroll(sessionId);
+     *
+     * // Manager assigning student
+     * await api.sessions.enroll(sessionId, studentUserId);
      * ```
      */
-    async assignStudent(sessionId: string, studentUserId: string): Promise<SuccessResponse> {
+    async enroll(sessionId: string, studentUserId?: string): Promise<SuccessResponse> {
       const { data, error } = await supabase.functions.invoke<SuccessResponse>(
         'sessions-assign-student',
         {
-          body: { session_id: sessionId, student_user_id: studentUserId },
+          body: { sessionId, studentUserId },
         }
       );
 

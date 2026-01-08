@@ -7,7 +7,7 @@
     "dev": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "build": "expo export",
+    "build": "expo export --platform ios,android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf .expo dist"

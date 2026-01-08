@@ -37,13 +37,16 @@ INSERT INTO public.products (id, site_id, type, name, description, price_cents, 
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
--- Demo Admin User (create in auth.users first via Supabase Dashboard or CLI)
--- Then run this to create profile:
+-- Demo Exam Centers
 -- =====================================================
--- INSERT INTO public.profiles (user_id, role, full_name) VALUES
---   ('<admin-user-uuid>', 'admin', 'Admin Demo');
+INSERT INTO public.exam_centers (id, site_id, name, city, postal_code, address) VALUES
+  ('00000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000001', 'Centre d''examen Paris Nord', 'Paris', '75019', '123 Quai de la Seine'),
+  ('00000000-0000-0000-0000-000000000022', NULL, 'Centre d''examen Marseille', 'Marseille', '13001', '45 Quai du Port')
+ON CONFLICT (id) DO NOTHING;
 
-RAISE NOTICE 'Seed data inserted successfully!';
-RAISE NOTICE 'Next steps:';
-RAISE NOTICE '1. Create an admin user via Supabase Auth';
-RAISE NOTICE '2. Run: INSERT INTO public.profiles (user_id, role, full_name) VALUES (''<uuid>'', ''admin'', ''Admin Name'');';
+-- =====================================================
+-- Next Steps (manual):
+-- 1. Create an admin user via Supabase Dashboard or CLI
+-- 2. Update their profile role:
+--    UPDATE public.profiles SET role = 'admin' WHERE user_id = '<uuid>';
+-- =====================================================

@@ -10,23 +10,25 @@ export function createPushClient(supabase: SupabaseClient<Database>) {
     /**
      * Register a push token for the current user
      *
-     * @param platform - 'ios' or 'android'
-     * @param expoPushToken - The Expo push token
+     * @param token - The Expo push token
+     * @param platform - 'ios', 'android', or 'web'
+     * @param deviceId - Optional device identifier for token management
      *
      * @example
      * ```typescript
      * const token = await Notifications.getExpoPushTokenAsync();
-     * await api.push.registerToken(Platform.OS, token.data);
+     * await api.push.registerToken(token.data, Platform.OS);
      * ```
      */
     async registerToken(
-      platform: 'ios' | 'android',
-      expoPushToken: string
+      token: string,
+      platform: 'ios' | 'android' | 'web',
+      deviceId?: string
     ): Promise<SuccessResponse> {
       const { data, error } = await supabase.functions.invoke<SuccessResponse>(
         'push-register-token',
         {
-          body: { platform, expo_push_token: expoPushToken },
+          body: { token, platform, deviceId },
         }
       );
 
@@ -42,13 +44,13 @@ export function createPushClient(supabase: SupabaseClient<Database>) {
      *
      * Call this when user logs out.
      *
-     * @param expoPushToken - The Expo push token to remove
+     * @param token - The push token to remove
      */
-    async unregisterToken(expoPushToken: string): Promise<SuccessResponse> {
+    async unregisterToken(token: string): Promise<SuccessResponse> {
       const { error } = await supabase
         .from('device_tokens')
         .delete()
-        .eq('expo_push_token', expoPushToken);
+        .eq('token', token);
 
       if (error) {
         throw new Error(error.message || 'Failed to unregister push token');
@@ -58,21 +60,21 @@ export function createPushClient(supabase: SupabaseClient<Database>) {
     },
 
     /**
-     * Send a push notification to a user (internal/admin use)
+     * Send push notifications to multiple users (admin/manager only)
      *
-     * @param userId - The user UUID to send to
+     * @param userIds - Array of user UUIDs to send to
      * @param title - Notification title
      * @param body - Notification body
      * @param data - Optional data payload
      */
-    async sendToUser(
-      userId: string,
+    async sendToUsers(
+      userIds: string[],
       title: string,
       body: string,
       data?: Record<string, unknown>
     ): Promise<PushResponse> {
       const { data: response, error } = await supabase.functions.invoke<PushResponse>('push-send', {
-        body: { user_id: userId, title, body, data },
+        body: { userIds, title, body, data },
       });
 
       if (error) {

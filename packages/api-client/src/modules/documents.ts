@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, DocumentStatus } from '@boatacademy/shared';
+import type { Database } from '@boatacademy/shared';
 import type { SuccessResponse } from '../types';
 
 /**
@@ -12,29 +12,25 @@ export function createDocumentsClient(supabase: SupabaseClient<Database>) {
      *
      * Only admin/manager can call this.
      *
-     * @param studentDocumentId - The document UUID
-     * @param status - 'approved' or 'rejected'
-     * @param rejectedReason - Reason if rejected
+     * @param documentId - The document UUID
+     * @param action - 'approve' or 'reject'
+     * @param rejectionReason - Reason if rejecting
      *
      * @example
      * ```typescript
-     * await api.documents.validate(docId, 'approved');
-     * await api.documents.validate(docId, 'rejected', 'Photo floue');
+     * await api.documents.validate(docId, 'approve');
+     * await api.documents.validate(docId, 'reject', 'Photo floue');
      * ```
      */
     async validate(
-      studentDocumentId: string,
-      status: Extract<DocumentStatus, 'approved' | 'rejected'>,
-      rejectedReason?: string
+      documentId: string,
+      action: 'approve' | 'reject',
+      rejectionReason?: string
     ): Promise<SuccessResponse> {
       const { data, error } = await supabase.functions.invoke<SuccessResponse>(
         'documents-validate',
         {
-          body: {
-            student_document_id: studentDocumentId,
-            status,
-            rejected_reason: rejectedReason,
-          },
+          body: { documentId, action, rejectionReason },
         }
       );
 

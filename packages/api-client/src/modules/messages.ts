@@ -12,17 +12,28 @@ export function createMessagesClient(supabase: SupabaseClient<Database>) {
      *
      * Creates in-app notifications for recipients.
      *
-     * @param conversationId - The conversation UUID
-     * @param body - The message text
+     * @param content - The message text
+     * @param options - Optional params: conversationId (existing), recipientUserId + siteId (new)
      *
      * @example
      * ```typescript
-     * await api.messages.send(conversationId, 'Bonjour !');
+     * // Send to existing conversation
+     * await api.messages.send('Bonjour !', { conversationId });
+     *
+     * // Create new conversation (for managers)
+     * await api.messages.send('Bienvenue !', { recipientUserId, siteId });
      * ```
      */
-    async send(conversationId: string, body: string): Promise<MessageResponse> {
+    async send(
+      content: string,
+      options: {
+        conversationId?: string;
+        recipientUserId?: string;
+        siteId?: string;
+      }
+    ): Promise<MessageResponse> {
       const { data, error } = await supabase.functions.invoke<MessageResponse>('messages-send', {
-        body: { conversation_id: conversationId, body },
+        body: { content, ...options },
       });
 
       if (error) {

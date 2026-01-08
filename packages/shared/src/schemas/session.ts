@@ -6,30 +6,36 @@ import { z } from 'zod';
 export const sessionTypeSchema = z.enum(['theory', 'practice']);
 
 /**
+ * Base session object schema (without refinement)
+ */
+const sessionBaseSchema = z.object({
+  siteId: z.string().uuid('Site invalide'),
+  type: sessionTypeSchema,
+  startsAt: z.string().datetime('Date de debut invalide'),
+  endsAt: z.string().datetime('Date de fin invalide'),
+  capacity: z.number().int().min(1, 'Capacite minimum: 1'),
+  location: z.string().optional(),
+  instructorUserId: z.string().uuid().optional(),
+  notes: z.string().optional(),
+});
+
+/**
  * Create session schema (admin/manager)
  */
-export const createSessionSchema = z
-  .object({
-    siteId: z.string().uuid('Site invalide'),
-    type: sessionTypeSchema,
-    startsAt: z.string().datetime('Date de debut invalide'),
-    endsAt: z.string().datetime('Date de fin invalide'),
-    capacity: z.number().int().min(1, 'Capacite minimum: 1'),
-    location: z.string().optional(),
-    instructorUserId: z.string().uuid().optional(),
-    notes: z.string().optional(),
-  })
-  .refine((data) => new Date(data.endsAt) > new Date(data.startsAt), {
+export const createSessionSchema = sessionBaseSchema.refine(
+  (data) => new Date(data.endsAt) > new Date(data.startsAt),
+  {
     message: 'La date de fin doit etre apres la date de debut',
     path: ['endsAt'],
-  });
+  }
+);
 
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 
 /**
- * Update session schema
+ * Update session schema (partial, without siteId)
  */
-export const updateSessionSchema = createSessionSchema.partial().omit({ siteId: true });
+export const updateSessionSchema = sessionBaseSchema.omit({ siteId: true }).partial();
 
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 

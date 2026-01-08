@@ -3,6 +3,7 @@
     "name": "Boat Academy",
     "slug": "boat-academy-student",
     "version": "0.1.0",
+    "platforms": ["ios", "android"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "boatacademy",
@@ -27,11 +28,6 @@
       },
       "package": "com.boatacademy.student",
       "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED"]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",

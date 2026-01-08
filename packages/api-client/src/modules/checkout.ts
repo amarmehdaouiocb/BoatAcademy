@@ -11,20 +11,28 @@ export function createCheckoutClient(supabase: SupabaseClient<Database>) {
      * Create a Stripe Checkout session for a product
      *
      * @param productId - The product UUID to purchase
+     * @param siteId - The site UUID
+     * @param successUrl - URL to redirect on success
+     * @param cancelUrl - URL to redirect on cancel
      * @returns Stripe Checkout URL to redirect user
      * @throws Error if product not found or user not authenticated
      *
      * @example
      * ```typescript
-     * const { url } = await api.checkout.createSession(productId);
+     * const { url } = await api.checkout.createSession(productId, siteId, successUrl, cancelUrl);
      * window.location.href = url; // Redirect to Stripe
      * ```
      */
-    async createSession(productId: string): Promise<CheckoutSessionResponse> {
+    async createSession(
+      productId: string,
+      siteId: string,
+      successUrl: string,
+      cancelUrl: string
+    ): Promise<CheckoutSessionResponse> {
       const { data, error } = await supabase.functions.invoke<CheckoutSessionResponse>(
         'checkout-create-session',
         {
-          body: { product_id: productId },
+          body: { productId, siteId, successUrl, cancelUrl },
         }
       );
 
@@ -49,7 +57,7 @@ export function createCheckoutClient(supabase: SupabaseClient<Database>) {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('stripe_checkout_session_id', stripeSessionId)
+        .eq('stripe_session_id', stripeSessionId)
         .single();
 
       if (error) {

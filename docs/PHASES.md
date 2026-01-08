@@ -7,8 +7,8 @@
 | Phase | Nom | Status | Derniere MAJ |
 |-------|-----|--------|--------------|
 | 1 | Setup Monorepo | :white_check_mark: Termine | 2025-01-08 |
-| 2 | DB Schema + RLS | :hourglass: Planifie | - |
-| 3 | Edge Functions | :hourglass: Planifie | - |
+| 2 | DB Schema + RLS | :white_check_mark: Termine | 2025-01-08 |
+| 3 | Edge Functions | :white_check_mark: Termine | 2025-01-08 |
 | 4 | admin-web | :hourglass: Planifie | - |
 | 5 | student-mobile | :hourglass: Planifie | - |
 | 6 | Paiements Stripe | :hourglass: Planifie | - |
@@ -69,29 +69,99 @@ boat-academy/
 
 ## Phase 2 : DB Schema + RLS
 
-**Status**: :hourglass: Planifie
+**Status**: :white_check_mark: Termine
 
-### Objectifs
+### Taches
 
-- Tables : sites, profiles, students, documents, products, orders, sessions, etc.
-- Indexes optimises
-- RLS policies pour isolation multi-tenant
-- Fonctions helpers (current_user_id, current_role, has_site_access)
+- [x] Enums : user_role, document_status, product_type, order_status, session_type, enrollment_status, penalty_type, notification_type
+- [x] Tables principales (22 tables)
+- [x] Fonctions helpers (current_user_id, current_role, has_site_access)
+- [x] Triggers (handle_updated_at, handle_new_user)
+- [x] RLS policies (50+ policies)
+- [x] Seed data (document_types, demo site, products, exam_centers)
+
+### Migrations creees
+
+```
+supabase/migrations/
+├── 20250108000001_initial_schema.sql   # Schema complet
+└── 20250108000002_rls_policies.sql     # Toutes les RLS policies
+```
+
+### Tables creees
+
+| Table | Description |
+|-------|-------------|
+| sites | Sites multi-tenant |
+| profiles | Profils utilisateurs |
+| profile_sites | Association profil/site |
+| students | Stagiaires |
+| document_types | Types de documents requis |
+| site_required_documents | Documents requis par site |
+| student_documents | Documents uploades |
+| products | Produits (permis, reactivation) |
+| orders | Commandes |
+| entitlements | Droits d'acces |
+| sessions | Sessions de formation |
+| enrollments | Inscriptions aux sessions |
+| penalties | Penalites |
+| exam_centers | Centres d'examen |
+| external_learning_links | Liens apprentissage externe |
+| conversations | Conversations messagerie |
+| messages | Messages |
+| notifications | Notifications in-app |
+| device_tokens | Tokens push |
+| audit_log | Journal d'audit |
 
 ---
 
 ## Phase 3 : Edge Functions
 
-**Status**: :hourglass: Planifie
+**Status**: :white_check_mark: Termine
 
-### Objectifs
+### Taches
 
-- `checkout-create-session` : Creation session Stripe
-- `stripe-webhook` : Traitement paiements
-- `sessions-assign-student` : Inscription sessions
-- `documents-validate` : Validation documents
-- `messages-send` : Envoi messages + notifications
-- `push-register-token` / `push-send` : Push notifications
+- [x] `checkout-create-session` : Creation session Stripe Checkout
+- [x] `stripe-webhook` : Traitement paiements + creation entitlements
+- [x] `sessions-assign-student` : Inscription sessions (etudiant/manager)
+- [x] `documents-validate` : Validation/rejet documents (admin/manager)
+- [x] `messages-send` : Envoi messages + notifications in-app
+- [x] `push-register-token` : Enregistrement token push Expo
+- [x] `push-send` : Envoi notifications push via Expo API
+
+### Edge Functions creees
+
+```
+supabase/functions/
+├── _shared/
+│   ├── auth.ts              # getAuthedUser helper
+│   ├── cors.ts              # CORS + JSON response helpers
+│   └── supabaseAdmin.ts     # Admin client (service role)
+├── checkout-create-session/
+│   └── index.ts             # Stripe Checkout session creation
+├── stripe-webhook/
+│   └── index.ts             # Webhook handler (checkout.session.completed, expired)
+├── sessions-assign-student/
+│   └── index.ts             # Enrollment management
+├── documents-validate/
+│   └── index.ts             # Document approval/rejection + status update
+├── messages-send/
+│   └── index.ts             # Messaging + notifications
+├── push-register-token/
+│   └── index.ts             # Device token registration
+└── push-send/
+    └── index.ts             # Expo Push API integration
+```
+
+### Variables d'environnement requises
+
+| Variable | Description |
+|----------|-------------|
+| `STRIPE_SECRET_KEY` | Cle secrete Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Secret webhook Stripe |
+| `SUPABASE_URL` | URL Supabase (auto) |
+| `SUPABASE_ANON_KEY` | Cle anon Supabase (auto) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Cle service role (auto) |
 
 ---
 
