@@ -1,16 +1,24 @@
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ error?: string }>();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Gérer les erreurs passées via query params
+  useEffect(() => {
+    if (params.error === 'not_student') {
+      setError('Cette application est réservée aux stagiaires. Les instructeurs et managers doivent utiliser l\'application web.');
+    }
+  }, [params.error]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {

@@ -126,6 +126,24 @@ export default function SessionsScreen() {
       return;
     }
 
+    // Vérifier si le numéro OEDIPP est requis pour les sessions pratiques
+    if (session.type === 'practice' && !student.oedipp_number) {
+      Alert.alert(
+        'Numéro OEDIPP requis',
+        'Pour vous inscrire à une session de pratique, vous devez d\'abord renseigner votre numéro OEDIPP dans votre profil.',
+        [
+          { text: 'Plus tard', style: 'cancel' },
+          {
+            text: 'Aller au profil',
+            onPress: () => {
+              // Navigation vers le profil gérée par les tabs
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
       "S'inscrire à la session",
       `Voulez-vous vous inscrire à la session de ${session.type === 'theory' ? 'théorie' : 'pratique'} du ${formatDate(session.starts_at)} ?`,
@@ -261,6 +279,7 @@ export default function SessionsScreen() {
                     isEnrolled={isEnrolled(session.id)}
                     enrolling={enrollingId === session.id}
                     onEnroll={() => handleEnroll(session)}
+                    needsOedipp={session.type === 'practice' && !student?.oedipp_number}
                   />
                 ))}
               </View>
@@ -293,11 +312,13 @@ function SessionCard({
   isEnrolled,
   enrolling,
   onEnroll,
+  needsOedipp,
 }: {
   session: Session;
   isEnrolled: boolean;
   enrolling: boolean;
   onEnroll: () => void;
+  needsOedipp?: boolean;
 }) {
   const enrolled = session.enrollments?.length || 0;
   const remaining = session.capacity - enrolled;
@@ -307,7 +328,7 @@ function SessionCard({
     <View className="rounded-xl bg-white p-4">
       <View className="flex-row items-start justify-between">
         <View className="flex-1">
-          <View className="flex-row items-center">
+          <View className="flex-row flex-wrap items-center">
             <View
               className={`rounded-full px-3 py-1 ${
                 session.type === 'theory' ? 'bg-blue-100' : 'bg-green-100'
@@ -324,6 +345,11 @@ function SessionCard({
             {isFull && (
               <View className="ml-2 rounded-full bg-red-100 px-3 py-1">
                 <Text className="text-xs font-medium text-red-700">Complet</Text>
+              </View>
+            )}
+            {needsOedipp && !isFull && !isEnrolled && (
+              <View className="ml-2 rounded-full bg-orange-100 px-3 py-1">
+                <Text className="text-xs font-medium text-orange-700">OEDIPP requis</Text>
               </View>
             )}
           </View>

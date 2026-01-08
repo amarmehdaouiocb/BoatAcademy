@@ -27,6 +27,11 @@ export default function HomeScreen() {
     if (!user?.id || !student?.site_id) return;
 
     try {
+      // Fetch total document types count
+      const { count: totalDocTypes } = await supabase
+        .from('document_types')
+        .select('id', { count: 'exact', head: true });
+
       // Fetch documents count from student_documents
       const { data: docs } = await supabase
         .from('student_documents')
@@ -35,6 +40,7 @@ export default function HomeScreen() {
         .eq('site_id', student.site_id);
 
       const approvedDocs = docs?.filter((d) => d.status === 'approved').length || 0;
+      const documentsTotal = totalDocTypes || 4; // Fallback to 4 if query fails
 
       // Fetch upcoming enrollments
       const { data: enrollments } = await supabase
@@ -67,7 +73,7 @@ export default function HomeScreen() {
 
       setStats({
         documentsApproved: approvedDocs,
-        documentsTotal: 4,
+        documentsTotal,
         upcomingEnrollments: enrollments?.length || 0,
         unreadMessages: unreadCount,
       });

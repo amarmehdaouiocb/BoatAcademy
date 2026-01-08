@@ -25,6 +25,8 @@ type AuthContextType = {
   profile: Profile | null;
   student: Student | null;
   loading: boolean;
+  profileLoading: boolean;
+  isAccessExpired: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -39,8 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Vérifie si l'accès du stagiaire est expiré
+  const isAccessExpired = student?.access_expires_at
+    ? new Date(student.access_expires_at) < new Date()
+    : false;
 
   const fetchProfile = useCallback(async (userId: string) => {
+    setProfileLoading(true);
     try {
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -50,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError);
+        console.error('Erreur lors du chargement du profil:', profileError);
         return;
       }
 
@@ -71,13 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (studentError) {
-          console.error('Error fetching student:', studentError);
+          console.error('Erreur lors du chargement des infos stagiaire:', studentError);
         } else {
           setStudent(studentData as unknown as Student);
         }
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('Erreur dans fetchProfile:', error);
+    } finally {
+      setProfileLoading(false);
     }
   }, []);
 
@@ -161,6 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         student,
         loading,
+        profileLoading,
+        isAccessExpired,
         signIn,
         signUp,
         signOut,

@@ -1,13 +1,39 @@
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { supabase } from '../../src/lib/supabase';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, profile, student, signOut, loading } = useAuth();
+  const { user, profile, student, signOut, loading, refreshProfile } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [oedippModalVisible, setOedippModalVisible] = useState(false);
+  const [oedippNumber, setOedippNumber] = useState(student?.oedipp_number || '');
+  const [savingOedipp, setSavingOedipp] = useState(false);
+
+  const handleSaveOedipp = async () => {
+    if (!user?.id) return;
+
+    setSavingOedipp(true);
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ oedipp_number: oedippNumber.trim() || null })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      setOedippModalVisible(false);
+      Alert.alert('Succès', 'Numéro OEDIPP mis à jour.');
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message || 'Impossible de mettre à jour le numéro OEDIPP.');
+    } finally {
+      setSavingOedipp(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -90,10 +116,21 @@ export default function ProfileScreen() {
               label="Site de formation"
               value={student?.site?.name || 'Non attribué'}
             />
-            <InfoRow
-              label="Numéro OEDIPP"
-              value={student?.oedipp_number || 'Non renseigné'}
-            />
+            <Pressable
+              onPress={() => {
+                setOedippNumber(student?.oedipp_number || '');
+                setOedippModalVisible(true);
+              }}
+              className="flex-row items-center justify-between"
+            >
+              <Text className="text-gray-600">Numéro OEDIPP</Text>
+              <View className="flex-row items-center">
+                <Text className={`font-medium ${student?.oedipp_number ? 'text-gray-900' : 'text-orange-600'}`}>
+                  {student?.oedipp_number || 'À renseigner'}
+                </Text>
+                <Text className="ml-2 text-gray-400">✎</Text>
+              </View>
+            </Pressable>
             <InfoRow
               label="Accès expire le"
               value={formatDate(student?.access_expires_at || null)}
@@ -163,6 +200,62 @@ export default function ProfileScreen() {
           Boat Academy v1.0.0 - MVP
         </Text>
       </ScrollView>
+
+      {/* Modal édition OEDIPP */}
+      <Modal
+        visible={oedippModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setOedippModalVisible(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="rounded-t-3xl bg-white p-6">
+            <View className="mb-6 flex-row items-center justify-between">
+              <Text className="text-xl font-bold text-gray-900">Numéro OEDIPP</Text>
+              <Pressable onPress={() => setOedippModalVisible(false)}>
+                <Text className="text-2xl text-gray-400">×</Text>
+              </Pressable>
+            </View>
+
+            <Text className="mb-4 text-gray-600">
+              Votre numéro OEDIPP est nécessaire pour vous inscrire aux sessions de pratique.
+              Vous pouvez l'obtenir auprès de votre école.
+            </Text>
+
+            <TextInput
+              value={oedippNumber}
+              onChangeText={setOedippNumber}
+              placeholder="Ex: 123456789"
+              keyboardType="numeric"
+              maxLength={20}
+              editable={!savingOedipp}
+              className="mb-6 rounded-xl border border-gray-300 bg-white px-4 py-4 text-lg text-gray-900"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <View className="flex-row space-x-3">
+              <Pressable
+                onPress={() => setOedippModalVisible(false)}
+                disabled={savingOedipp}
+                className="flex-1 rounded-xl border border-gray-300 py-4"
+              >
+                <Text className="text-center font-semibold text-gray-700">Annuler</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveOedipp}
+                disabled={savingOedipp}
+                className={`flex-1 rounded-xl py-4 ${savingOedipp ? 'bg-navy-400' : 'bg-navy-600'}`}
+              >
+                {savingOedipp ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text className="text-center font-semibold text-white">Enregistrer</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
