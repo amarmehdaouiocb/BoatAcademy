@@ -1,9 +1,24 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Link, Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withRepeat,
+  withSequence,
+  interpolate,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
+import { AnimatedPressable } from '../../src/components/ui';
+
+const { width } = Dimensions.get('window');
 
 type Stats = {
   documentsApproved: number;
@@ -23,16 +38,34 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Animation values
+  const waveRotation = useSharedValue(0);
+
+  useEffect(() => {
+    // Subtle wave animation for greeting
+    waveRotation.value = withRepeat(
+      withSequence(
+        withSpring(15, { damping: 3 }),
+        withSpring(-15, { damping: 3 }),
+        withSpring(0, { damping: 3 })
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  const waveStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${waveRotation.value}deg` }],
+  }));
+
   const fetchStats = useCallback(async () => {
     if (!user?.id || !student?.site_id) return;
 
     try {
-      // Fetch total document types count
       const { count: totalDocTypes } = await supabase
         .from('document_types')
         .select('id', { count: 'exact', head: true });
 
-      // Fetch documents count from student_documents
       const { data: docs } = await supabase
         .from('student_documents')
         .select('status')
@@ -40,20 +73,15 @@ export default function HomeScreen() {
         .eq('site_id', student.site_id);
 
       const approvedDocs = docs?.filter((d) => d.status === 'approved').length || 0;
-      const documentsTotal = totalDocTypes || 4; // Fallback to 4 if query fails
+      const documentsTotal = totalDocTypes || 4;
 
-      // Fetch upcoming enrollments
       const { data: enrollments } = await supabase
         .from('enrollments')
-        .select(`
-          id,
-          session:sessions!inner(starts_at)
-        `)
+        .select(`id, session:sessions!inner(starts_at)`)
         .eq('student_user_id', user.id)
         .eq('status', 'assigned')
         .gte('session.starts_at', new Date().toISOString());
 
-      // Fetch unread messages count (messages from others in user's conversation)
       let unreadCount = 0;
       const { data: conversations } = await supabase
         .from('conversations')
@@ -90,6 +118,7 @@ export default function HomeScreen() {
   }, [fetchStats]);
 
   const onRefresh = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     fetchStats();
   }, [fetchStats]);
@@ -101,133 +130,215 @@ export default function HomeScreen() {
     return 'Bonsoir';
   };
 
-  const firstName = profile?.full_name?.split(' ')[0] || 'Stagiaire';
+  const firstName = profile?.full_name?.split(' ')[0] || 'Matelot';
+  const progress = stats.documentsTotal > 0 ? (stats.documentsApproved / stats.documentsTotal) * 100 : 0;
 
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#0f172a" />
-      </SafeAreaView>
-    );
-  }
-
-  // Determine next step message
   const getNextStep = () => {
     if (stats.documentsApproved < stats.documentsTotal) {
       return {
         title: 'Complétez votre dossier',
-        description: `Il vous reste ${stats.documentsTotal - stats.documentsApproved} document(s) à valider pour finaliser votre inscription.`,
-        icon: '📄',
+        description: `${stats.documentsTotal - stats.documentsApproved} document(s) restant(s)`,
+        icon: '📋',
         href: '/documents' as Href,
+        colors: ['#f97316', '#ea580c'],
       };
     }
     if (stats.upcomingEnrollments === 0) {
       return {
-        title: 'Inscrivez-vous à une session',
-        description: 'Votre dossier est complet ! Vous pouvez maintenant vous inscrire aux sessions de formation.',
+        title: 'Réservez une session',
+        description: 'Votre dossier est prêt !',
         icon: '📅',
         href: '/sessions' as Href,
+        colors: ['#0ea5e9', '#0284c7'],
       };
     }
     return {
-      title: 'Vous êtes prêt !',
-      description: `Vous avez ${stats.upcomingEnrollments} session(s) à venir. Consultez votre planning.`,
-      icon: '✅',
+      title: 'Prêt pour la navigation',
+      description: `${stats.upcomingEnrollments} session(s) prévue(s)`,
+      icon: '⛵',
       href: '/sessions' as Href,
+      colors: ['#10b981', '#059669'],
     };
   };
 
   const nextStep = getNextStep();
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient colors={['#020617', '#0a1628', '#0f1f35']} style={StyleSheet.absoluteFill} />
+        <Animated.View entering={FadeInDown.delay(100)}>
+          <Text style={styles.loadingEmoji}>⚓</Text>
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <View style={styles.container}>
+      <LinearGradient colors={['#020617', '#0a1628', '#0f1f35']} style={StyleSheet.absoluteFill} />
+
+      {/* Ambient glow effects */}
+      <View style={styles.glowTop} />
+      <View style={styles.glowBottom} />
+
       <ScrollView
-        className="flex-1"
-        contentContainerClassName="p-6"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
       >
         {/* Header */}
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900">
-            {getGreeting()}, {firstName} 👋
-          </Text>
-          <Text className="mt-1 text-gray-600">Bienvenue sur Boat Academy</Text>
-        </View>
+        <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()},</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{firstName}</Text>
+              <Animated.Text style={[styles.wave, waveStyle]}>👋</Animated.Text>
+            </View>
+          </View>
+          <Link href="/profile" asChild>
+            <AnimatedPressable style={styles.avatar}>
+              <LinearGradient
+                colors={['#0ea5e9', '#8b5cf6']}
+                style={styles.avatarGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.avatarText}>
+                  {profile?.full_name?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </LinearGradient>
+            </AnimatedPressable>
+          </Link>
+        </Animated.View>
+
+        {/* Progress Card */}
+        <Animated.View entering={FadeInDown.delay(200)}>
+          <View style={styles.progressCard}>
+            <BlurView intensity={20} tint="dark" style={styles.blur}>
+              <View style={styles.progressContent}>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressTitle}>Votre progression</Text>
+                  <Text style={styles.progressPercent}>{Math.round(progress)}%</Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                  <Animated.View
+                    style={[styles.progressBarFill, { width: `${progress}%` }]}
+                    entering={FadeInRight.delay(400).springify()}
+                  />
+                </View>
+                <Text style={styles.progressSubtitle}>
+                  {stats.documentsApproved}/{stats.documentsTotal} documents validés
+                </Text>
+              </View>
+            </BlurView>
+          </View>
+        </Animated.View>
+
+        {/* Next Step CTA */}
+        <Animated.View entering={FadeInDown.delay(300)}>
+          <Link href={nextStep.href} asChild>
+            <AnimatedPressable hapticStyle="medium">
+              <LinearGradient
+                colors={nextStep.colors as any}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaCard}
+              >
+                <View style={styles.ctaContent}>
+                  <Text style={styles.ctaIcon}>{nextStep.icon}</Text>
+                  <View style={styles.ctaText}>
+                    <Text style={styles.ctaTitle}>{nextStep.title}</Text>
+                    <Text style={styles.ctaDescription}>{nextStep.description}</Text>
+                  </View>
+                  <Text style={styles.ctaArrow}>→</Text>
+                </View>
+              </LinearGradient>
+            </AnimatedPressable>
+          </Link>
+        </Animated.View>
 
         {/* Quick Stats */}
-        <View className="mb-6 flex-row space-x-4">
-          <StatCard
-            title="Documents"
-            value={`${stats.documentsApproved}/${stats.documentsTotal}`}
-            color={stats.documentsApproved === stats.documentsTotal ? 'green' : 'blue'}
-          />
-          <StatCard title="Sessions" value={String(stats.upcomingEnrollments)} color="green" />
-        </View>
-
-        {/* Next Step Card */}
-        <Link href={nextStep.href} asChild>
-          <Pressable className="mb-6 rounded-xl bg-navy-900 p-4 active:bg-navy-800">
-            <View className="flex-row items-start">
-              <Text className="mr-4 text-3xl">{nextStep.icon}</Text>
-              <View className="flex-1">
-                <Text className="font-semibold text-white">{nextStep.title}</Text>
-                <Text className="mt-1 text-sm text-navy-200">{nextStep.description}</Text>
+        <View style={styles.statsRow}>
+          <Animated.View entering={FadeInDown.delay(400)} style={styles.statCard}>
+            <BlurView intensity={15} tint="dark" style={styles.blur}>
+              <View style={styles.statContent}>
+                <Text style={styles.statEmoji}>📅</Text>
+                <Text style={styles.statValue}>{stats.upcomingEnrollments}</Text>
+                <Text style={styles.statLabel}>Sessions</Text>
               </View>
-            </View>
-          </Pressable>
-        </Link>
+            </BlurView>
+          </Animated.View>
 
-        {/* Actions */}
-        <View className="mb-6">
-          <Text className="mb-4 text-lg font-semibold text-gray-900">Actions rapides</Text>
-          <View className="space-y-3">
-            <ActionCard
-              icon="📄"
-              title="Mes documents"
-              description="Gérez vos documents administratifs"
-              href="/documents"
-              badge={
-                stats.documentsApproved < stats.documentsTotal
-                  ? `${stats.documentsTotal - stats.documentsApproved} manquant(s)`
-                  : undefined
-              }
-            />
-            <ActionCard
-              icon="📅"
-              title="Sessions de formation"
-              description="Inscrivez-vous aux prochaines sessions"
-              href="/sessions"
-            />
-            <ActionCard
-              icon="💬"
-              title="Messages"
-              description="Échangez avec l'école"
-              href="/messages"
-              badge={stats.unreadMessages > 0 ? `${stats.unreadMessages} nouveau(x)` : undefined}
-            />
-          </View>
+          <Animated.View entering={FadeInDown.delay(500)} style={styles.statCard}>
+            <BlurView intensity={15} tint="dark" style={styles.blur}>
+              <View style={styles.statContent}>
+                <Text style={styles.statEmoji}>💬</Text>
+                <Text style={styles.statValue}>{stats.unreadMessages}</Text>
+                <Text style={styles.statLabel}>Messages</Text>
+              </View>
+            </BlurView>
+          </Animated.View>
         </View>
 
-        {/* Site info */}
+        {/* Quick Actions */}
+        <Animated.View entering={FadeInDown.delay(600)}>
+          <Text style={styles.sectionTitle}>Accès rapide</Text>
+        </Animated.View>
+
+        <View style={styles.actionsGrid}>
+          <ActionCard
+            icon="📄"
+            title="Documents"
+            subtitle="Gérer mon dossier"
+            href="/documents"
+            delay={700}
+            badge={stats.documentsApproved < stats.documentsTotal ? `${stats.documentsTotal - stats.documentsApproved}` : undefined}
+          />
+          <ActionCard
+            icon="📅"
+            title="Sessions"
+            subtitle="Réserver une place"
+            href="/sessions"
+            delay={800}
+          />
+          <ActionCard
+            icon="💬"
+            title="Messages"
+            subtitle="Contacter l'école"
+            href="/messages"
+            delay={900}
+            badge={stats.unreadMessages > 0 ? `${stats.unreadMessages}` : undefined}
+          />
+          <ActionCard
+            icon="👤"
+            title="Profil"
+            subtitle="Mes informations"
+            href="/profile"
+            delay={1000}
+          />
+        </View>
+
+        {/* Site Info */}
         {student?.site?.name && (
-          <View className="rounded-xl bg-navy-50 p-4">
-            <Text className="text-sm font-medium text-navy-600">Votre site de formation</Text>
-            <Text className="mt-1 text-lg font-semibold text-navy-900">{student.site.name}</Text>
-          </View>
+          <Animated.View entering={FadeInDown.delay(1100)} style={styles.siteCard}>
+            <BlurView intensity={15} tint="dark" style={styles.blur}>
+              <View style={styles.siteContent}>
+                <Text style={styles.siteIcon}>📍</Text>
+                <View>
+                  <Text style={styles.siteLabel}>Votre école</Text>
+                  <Text style={styles.siteName}>{student.site.name}</Text>
+                </View>
+              </View>
+            </BlurView>
+          </Animated.View>
         )}
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function StatCard({ title, value, color }: { title: string; value: string; color: 'blue' | 'green' }) {
-  const bgColor = color === 'blue' ? 'bg-blue-50' : 'bg-green-50';
-  const textColor = color === 'blue' ? 'text-blue-600' : 'text-green-600';
-
-  return (
-    <View className={`flex-1 rounded-xl ${bgColor} p-4`}>
-      <Text className="text-sm text-gray-600">{title}</Text>
-      <Text className={`mt-1 text-2xl font-bold ${textColor}`}>{value}</Text>
     </View>
   );
 }
@@ -235,33 +346,312 @@ function StatCard({ title, value, color }: { title: string; value: string; color
 function ActionCard({
   icon,
   title,
-  description,
+  subtitle,
   href,
+  delay,
   badge,
 }: {
   icon: string;
   title: string;
-  description: string;
+  subtitle: string;
   href: string;
+  delay: number;
   badge?: string;
 }) {
   return (
-    <Link href={href as Href} asChild>
-      <Pressable className="flex-row items-center rounded-xl bg-white p-4 active:bg-gray-50">
-        <Text className="mr-4 text-3xl">{icon}</Text>
-        <View className="flex-1">
-          <View className="flex-row items-center">
-            <Text className="font-semibold text-gray-900">{title}</Text>
-            {badge && (
-              <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
-                <Text className="text-xs font-medium text-red-600">{badge}</Text>
+    <Animated.View entering={FadeInDown.delay(delay)} style={styles.actionCard}>
+      <Link href={href as Href} asChild>
+        <AnimatedPressable style={styles.actionCardInner}>
+          <BlurView intensity={15} tint="dark" style={styles.blur}>
+            <View style={styles.actionContent}>
+              <View style={styles.actionIconRow}>
+                <Text style={styles.actionIcon}>{icon}</Text>
+                {badge && (
+                  <View style={styles.actionBadge}>
+                    <Text style={styles.actionBadgeText}>{badge}</Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-          <Text className="text-sm text-gray-600">{description}</Text>
-        </View>
-        <Text className="text-gray-400">›</Text>
-      </Pressable>
-    </Link>
+              <Text style={styles.actionTitle}>{title}</Text>
+              <Text style={styles.actionSubtitle}>{subtitle}</Text>
+            </View>
+          </BlurView>
+        </AnimatedPressable>
+      </Link>
+    </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#020617',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#020617',
+  },
+  loadingEmoji: {
+    fontSize: 64,
+  },
+  glowTop: {
+    position: 'absolute',
+    top: -150,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: '#0ea5e9',
+    opacity: 0.12,
+  },
+  glowBottom: {
+    position: 'absolute',
+    bottom: 100,
+    left: -150,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: '#8b5cf6',
+    opacity: 0.08,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  name: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  wave: {
+    fontSize: 28,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    overflow: 'hidden',
+  },
+  avatarGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  progressCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  blur: {
+    flex: 1,
+  },
+  progressContent: {
+    padding: 20,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  progressPercent: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0ea5e9',
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#0ea5e9',
+    borderRadius: 4,
+  },
+  progressSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  ctaCard: {
+    borderRadius: 24,
+    marginBottom: 24,
+  },
+  ctaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 16,
+  },
+  ctaIcon: {
+    fontSize: 36,
+  },
+  ctaText: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  ctaDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  ctaArrow: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: '300',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 28,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  statContent: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  statEmoji: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  actionCard: {
+    width: (width - 52) / 2,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  actionCardInner: {
+    flex: 1,
+  },
+  actionContent: {
+    padding: 16,
+  },
+  actionIconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  actionIcon: {
+    fontSize: 32,
+  },
+  actionBadge: {
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  actionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  actionSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  siteCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  siteContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  siteIcon: {
+    fontSize: 24,
+  },
+  siteLabel: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  siteName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  bottomSpacer: {
+    height: 100,
+  },
+});
