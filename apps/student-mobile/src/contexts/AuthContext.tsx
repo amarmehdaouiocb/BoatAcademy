@@ -28,7 +28,7 @@ type AuthContextType = {
   profileLoading: boolean;
   isAccessExpired: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, phone?: string, siteId?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ? new Date(student.access_expires_at) < new Date()
     : false;
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, userMetadata?: Record<string, any>) => {
     setProfileLoading(true);
     try {
       // Fetch profile
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If user is a student, fetch student info
       if (profileData?.role === 'student') {
-        const { data: studentData, error: studentError } = await supabase
+        let { data: studentData, error: studentError } = await supabase
           .from('students')
           .select(`
             user_id,
@@ -79,9 +79,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('user_id', userId)
           .single();
 
+        // If no student record exists but user has site_id in metadata, create it
+        if (studentError && studentError.code === 'PGRST116' && userMetadata?.site_id) {
+          const { data: newStudent, error: createError } = await supabase
+            .from('students')
+            .insert({
+              user_id: userId,
+              site_id: userMetadata.site_id,
+            })
+            .select(`
+              user_id,
+              site_id,
+              oedipp_number,
+              access_expires_at,
+              site:sites(name)
+            `)
+            .single();
+
+          if (createError) {
+            console.error('Erreur lors de la création du stagiaire:', createError);
+          } else {
+            studentData = newStudent;
+            studentError = null;
+          }
+        }
+
         if (studentError) {
           console.error('Erreur lors du chargement des infos stagiaire:', studentError);
-        } else {
+        } else if (studentData) {
           setStudent(studentData as unknown as Student);
         }
       }
@@ -104,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.user_metadata);
       }
       setLoading(false);
     });
@@ -117,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, session.user.user_metadata);
         } else {
           setProfile(null);
           setStudent(null);
@@ -138,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string, phone?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, phone?: string, siteId?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -146,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           full_name: fullName,
           phone: phone || null,
+          site_id: siteId || null,
         },
       },
     });
@@ -154,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error as Error };
     }
 
-    // Note: Profile will be created by a database trigger on auth.users insert
+    // Note: Profile and student record will be created by database triggers on auth.users insert
     return { error: null };
   };
 
