@@ -52,11 +52,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileLoading(true);
     try {
       // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, full_name, phone, role')
         .eq('user_id', userId)
         .single();
+
+      // If no profile exists, create one from user metadata
+      if (profileError && profileError.code === 'PGRST116' && userMetadata) {
+        console.log('Profil non trouvé, création automatique...');
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            full_name: userMetadata.full_name || null,
+            phone: userMetadata.phone || null,
+            role: 'student',
+          })
+          .select('user_id, full_name, phone, role')
+          .single();
+
+        if (createError) {
+          console.error('Erreur lors de la création du profil:', createError);
+          return;
+        }
+        profileData = newProfile;
+        profileError = null;
+      }
 
       if (profileError) {
         console.error('Erreur lors du chargement du profil:', profileError);
