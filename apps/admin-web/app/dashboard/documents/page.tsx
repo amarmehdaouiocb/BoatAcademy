@@ -32,8 +32,8 @@ type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 const statusOptions = [
   { value: 'all', label: 'Tous les statuts' },
   { value: 'pending', label: 'En attente' },
-  { value: 'approved', label: 'Approuves' },
-  { value: 'rejected', label: 'Rejetes' },
+  { value: 'approved', label: 'Approuvés' },
+  { value: 'rejected', label: 'Rejetés' },
 ];
 
 export default function DocumentsPage() {
@@ -194,7 +194,7 @@ export default function DocumentsPage() {
             <p className="mt-4 text-navy-500">
               {filter === 'pending'
                 ? 'Aucun document en attente'
-                : 'Aucun document trouve'}
+                : 'Aucun document trouvé'}
             </p>
           </CardContent>
         </Card>
@@ -217,7 +217,7 @@ export default function DocumentsPage() {
                         {doc.site?.name}
                       </p>
                       <p className="text-xs text-navy-400">
-                        Uploade le{' '}
+                        Téléchargé le{' '}
                         {new Date(doc.uploaded_at).toLocaleDateString('fr-FR', {
                           day: 'numeric',
                           month: 'short',
@@ -289,7 +289,7 @@ export default function DocumentsPage() {
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Ex: Document illisible, date expiree..."
+                placeholder="Ex: Document illisible, date expirée..."
                 rows={3}
                 className="w-full rounded-lg border border-navy-200 px-4 py-3 text-navy-900 placeholder-navy-400 focus:border-navy-500 focus:outline-none focus:ring-2 focus:ring-navy-500/20"
               />

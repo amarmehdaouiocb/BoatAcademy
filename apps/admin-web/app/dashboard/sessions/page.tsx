@@ -69,7 +69,7 @@ export default function SessionsPage() {
           </p>
         </div>
         <Link href="/dashboard/sessions/new">
-          <Button icon={Plus}>Creer une session</Button>
+          <Button icon={Plus}>Créer une session</Button>
         </Link>
       </div>
 
@@ -130,7 +130,7 @@ export default function SessionsPage() {
                         href={`/dashboard/sessions/${session.id}`}
                         className="font-medium text-navy-900 hover:text-navy-700"
                       >
-                        {session.type === 'theory' ? 'Theorie' : 'Pratique'}
+                        {session.type === 'theory' ? 'Théorie' : 'Pratique'}
                       </Link>
                     </td>
                     <td className="px-6 py-4">

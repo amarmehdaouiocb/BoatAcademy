@@ -34,16 +34,17 @@ export function StatusBadge({ status }: { status: string }) {
   const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
     // Documents
     pending: { label: 'En attente', variant: 'warning' },
-    approved: { label: 'Approuve', variant: 'success' },
-    rejected: { label: 'Refuse', variant: 'error' },
+    approved: { label: 'Approuvé', variant: 'success' },
+    rejected: { label: 'Refusé', variant: 'error' },
     incomplete: { label: 'Incomplet', variant: 'default' },
     complete: { label: 'Complet', variant: 'success' },
     // Orders
-    completed: { label: 'Complete', variant: 'success' },
-    failed: { label: 'Echoue', variant: 'error' },
-    // Sessions
-    confirmed: { label: 'Confirme', variant: 'success' },
-    cancelled: { label: 'Annule', variant: 'error' },
+    completed: { label: 'Complété', variant: 'success' },
+    failed: { label: 'Échoué', variant: 'error' },
+    // Sessions / Enrollments
+    assigned: { label: 'Confirmé', variant: 'success' },
+    confirmed: { label: 'Confirmé', variant: 'success' },
+    cancelled: { label: 'Annulé', variant: 'error' },
     noshow: { label: 'Absent', variant: 'error' },
     // Sites
     active: { label: 'Actif', variant: 'success' },

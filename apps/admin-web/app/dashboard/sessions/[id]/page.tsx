@@ -40,7 +40,7 @@ type SelectOption = {
 };
 
 const sessionTypes = [
-  { value: 'theory', label: 'Theorie' },
+  { value: 'theory', label: 'Théorie' },
   { value: 'practice', label: 'Pratique' },
 ];
 
@@ -193,7 +193,7 @@ export default function SessionDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Etes-vous sur de vouloir supprimer cette session ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) return;
 
     setDeleting(true);
     setError(null);
@@ -269,7 +269,7 @@ export default function SessionDetailPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-navy-900">
-              {session.type === 'theory' ? 'Theorie' : 'Pratique'} -{' '}
+              {session.type === 'theory' ? 'Théorie' : 'Pratique'} -{' '}
               {new Date(session.starts_at).toLocaleDateString('fr-FR', {
                 weekday: 'long',
                 day: 'numeric',

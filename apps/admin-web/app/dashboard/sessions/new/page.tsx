@@ -16,7 +16,7 @@ type SelectOption = {
 };
 
 const sessionTypes = [
-  { value: 'theory', label: 'Theorie' },
+  { value: 'theory', label: 'Théorie' },
   { value: 'practice', label: 'Pratique' },
 ];
 
@@ -234,7 +234,7 @@ export default function NewSessionPage() {
                 </Button>
               </Link>
               <Button type="submit" loading={loading}>
-                Creer la session
+                Créer la session
               </Button>
             </div>
           </form>

@@ -230,7 +230,7 @@ export default function PlanningPage() {
                           <CardContent className="p-2">
                             <div className="mb-1 flex items-center justify-between">
                               <span className="text-xs font-semibold text-navy-900">
-                                {session.type === 'theory' ? 'Theorie' : 'Pratique'}
+                                {session.type === 'theory' ? 'Théorie' : 'Pratique'}
                               </span>
                               <StatusBadge status="confirmed" />
                             </div>
@@ -274,7 +274,7 @@ export default function PlanningPage() {
       <div className="flex items-center justify-center gap-6 text-sm text-navy-500">
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 rounded-full bg-success-500" />
-          <span>Theorie</span>
+          <span>Théorie</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 rounded-full bg-warning-500" />

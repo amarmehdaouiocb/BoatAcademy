@@ -76,7 +76,7 @@ export default function StudentDetailPage() {
         .single();
 
       if (studentError || !studentData) {
-        setError('Stagiaire non trouve');
+        setError('Stagiaire non trouvé');
         setLoading(false);
         return;
       }
@@ -185,7 +185,7 @@ export default function StudentDetailPage() {
   if (!student) {
     return (
       <div className="flex h-64 flex-col items-center justify-center">
-        <p className="text-navy-500">{error || 'Stagiaire non trouve'}</p>
+        <p className="text-navy-500">{error || 'Stagiaire non trouvé'}</p>
         <Link href="/dashboard/students" className="mt-4">
           <Button variant="outline">Retour aux stagiaires</Button>
         </Link>
@@ -251,7 +251,7 @@ export default function StudentDetailPage() {
                 />
 
                 <Input
-                  label="Numero OEDIPP"
+                  label="Numéro OEDIPP"
                   value={formData.oedipp_number}
                   onChange={(e) => setFormData({ ...formData, oedipp_number: e.target.value })}
                   placeholder="OEDIPP-XXXXX"
@@ -286,7 +286,7 @@ export default function StudentDetailPage() {
                       <Calendar className="h-5 w-5 text-navy-400" />
                       <div>
                         <p className="font-medium text-navy-900">
-                          {enrollment.session?.type === 'theory' ? 'Theorie' : 'Pratique'}
+                          {enrollment.session?.type === 'theory' ? 'Théorie' : 'Pratique'}
                         </p>
                         <p className="text-sm text-navy-500">
                           {enrollment.session?.starts_at
@@ -317,7 +317,7 @@ export default function StudentDetailPage() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-navy-600">Valides</span>
+                  <span className="text-sm text-navy-600">Validés</span>
                   <span className="font-medium text-success-600">
                     {documentStatusCount.approved}/{documentStatusCount.total}
                   </span>
