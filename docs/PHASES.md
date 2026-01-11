@@ -4,16 +4,16 @@
 
 ## Vue d'ensemble
 
-| Phase | Nom | Status | Derniere MAJ |
-|-------|-----|--------|--------------|
-| 1 | Setup Monorepo | :white_check_mark: Termine | 2025-01-08 |
-| 2 | DB Schema + RLS | :white_check_mark: Termine | 2025-01-08 |
-| 3 | Edge Functions | :white_check_mark: Termine | 2025-01-08 |
-| 4 | admin-web | :construction: En cours | 2025-01-08 |
-| 5 | student-mobile | :hourglass: Planifie | - |
-| 6 | Paiements Stripe | :hourglass: Planifie | - |
-| 7 | Push notifications | :hourglass: Planifie | - |
-| 8 | Hardening | :hourglass: Planifie | - |
+| Phase | Nom | Status | Progression | Derniere MAJ |
+|-------|-----|--------|-------------|--------------|
+| 1 | Setup Monorepo | :white_check_mark: Termine | 100% | 2025-01-08 |
+| 2 | DB Schema + RLS | :white_check_mark: Termine | 100% | 2025-01-08 |
+| 3 | Edge Functions | :white_check_mark: Termine | 100% | 2025-01-08 |
+| 4 | admin-web | :construction: En cours | ~60% | 2025-01-10 |
+| 5 | student-mobile | :construction: En cours | ~95% | 2025-01-10 |
+| 6 | Paiements Stripe | :hourglass: Planifie | 0% | - |
+| 7 | Push notifications | :hourglass: Planifie | 0% | - |
+| 8 | Hardening | :hourglass: Planifie | 0% | - |
 
 ---
 
@@ -167,36 +167,102 @@ supabase/functions/
 
 ## Phase 4 : admin-web
 
-**Status**: :construction: En cours
+**Status**: :construction: En cours (~60%)
 
-### Taches
+### Taches realisees
 
-- [ ] Auth (login/logout/middleware)
-- [ ] Layout admin (sidebar, header, navigation)
-- [ ] Dashboard avec stats
-- [ ] CRUD Sites
-- [ ] CRUD Etudiants (liste, detail, documents)
-- [ ] CRUD Sessions (liste, creation, inscriptions)
-- [ ] Validation documents
-- [ ] Messagerie (conversations, envoi)
-- [ ] Vue planning moniteur (read-only)
+- [x] Auth (login/logout/middleware avec Supabase)
+- [x] Layout admin (sidebar role-based, header utilisateur)
+- [x] Dashboard avec stats (etudiants, sessions, documents, notifs)
+- [x] CRUD Sites (liste, creation, edition, suppression)
+- [x] CRUD Etudiants (liste, detail, edition profil)
+- [x] CRUD Sessions (liste, creation, edition, inscriptions)
+- [x] Validation documents (filtres, approve/reject, signed URLs)
+- [x] Messagerie (conversations real-time, envoi messages)
+- [x] Vue planning moniteur (calendrier semaine, navigation)
+
+### Taches restantes
+
+- [ ] Page inscription etudiant a session (UI existe mais non connectee)
+- [ ] Gestion produits/commandes (types existent, pas d'UI)
+- [ ] Gestion staff/moniteurs (pas d'UI)
+- [ ] Marquage presence/no-show
+- [ ] Systeme penalites
+- [ ] Analytics/rapports avances
+- [ ] Export CSV/PDF
+- [ ] Parametres admin
+
+### Pages implementees
+
+```
+app/
+├── page.tsx                    # Landing
+├── login/page.tsx              # Auth
+└── dashboard/
+    ├── page.tsx                # Dashboard stats
+    ├── students/               # CRUD etudiants
+    ├── sessions/               # CRUD sessions
+    ├── sites/                  # CRUD sites
+    ├── documents/page.tsx      # Validation docs
+    ├── messages/               # Messagerie real-time
+    └── planning/page.tsx       # Calendrier semaine
+```
 
 ---
 
 ## Phase 5 : student-mobile
 
-**Status**: :hourglass: Planifie
+**Status**: :construction: En cours (~95%)
 
-### Objectifs
+### Taches realisees
 
-- Auth (email/password)
-- Onboarding
-- Upload documents
-- Consultation sessions
-- Inscription sessions
-- Messagerie
-- Profil + OEDIPP
-- Push notifications
+- [x] Auth (email/password avec validation role)
+- [x] Inscription avec selection site
+- [x] Upload documents (4 types: CNI, photo, medical, justificatif)
+- [x] Statut documents (missing/pending/approved/rejected)
+- [x] Consultation sessions disponibles
+- [x] Inscription/desinscription sessions
+- [x] Verification OEDIPP pour sessions pratiques
+- [x] Messagerie real-time avec ecole
+- [x] Profil complet + edition OEDIPP
+- [x] Gestion expiration acces
+- [x] Design premium glassmorphism + animations
+- [x] Haptic feedback
+- [x] Tab navigation custom avec blur
+
+### Taches restantes
+
+- [x] Push notifications (useNotifications hook + NotificationHandler)
+- [ ] Preview documents uploades
+- [ ] Liens CGU/Politique confidentialite
+- [ ] Mode offline
+- [ ] Rappels sessions
+
+### Ecrans implementes
+
+```
+app/
+├── index.tsx               # Guard auth + loading
+├── expired.tsx             # Ecran acces expire
+├── (auth)/
+│   ├── login.tsx           # Connexion
+│   └── register.tsx        # Inscription + selection site
+└── (tabs)/
+    ├── index.tsx           # Dashboard accueil
+    ├── documents.tsx       # Upload 4 documents
+    ├── sessions.tsx        # Sessions dispo + mes inscriptions
+    ├── messages.tsx        # Chat real-time
+    └── profile.tsx         # Profil + OEDIPP + deconnexion
+```
+
+### Design System
+
+- Glassmorphism (BlurView + transparence)
+- Gradients bleu/violet
+- Dark theme navy
+- Animations Reanimated (FadeIn, scale)
+- Haptic feedback (light/medium/heavy)
+- Tab bar flottante custom
 
 ---
 
